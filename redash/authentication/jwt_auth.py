@@ -14,23 +14,22 @@ def get_public_keys(url):
     key_cache = get_public_keys.key_cache
     if url in key_cache:
         return key_cache[url]
-    else:
-        r = requests.get(url)
-        r.raise_for_status()
-        data = r.json()
-        if "keys" in data:
-            public_keys = []
-            for key_dict in data["keys"]:
-                public_key = jwt.algorithms.RSAAlgorithm.from_jwk(
-                    simplejson.dumps(key_dict)
-                )
-                public_keys.append(public_key)
+    r = requests.get(url)
+    r.raise_for_status()
+    data = r.json()
+    if "keys" in data:
+        public_keys = []
+        for key_dict in data["keys"]:
+            public_key = jwt.algorithms.RSAAlgorithm.from_jwk(
+                simplejson.dumps(key_dict)
+            )
+            public_keys.append(public_key)
 
-            get_public_keys.key_cache[url] = public_keys
-            return public_keys
-        else:
-            get_public_keys.key_cache[url] = data
-            return data
+        get_public_keys.key_cache[url] = public_keys
+        return public_keys
+    else:
+        get_public_keys.key_cache[url] = data
+        return data
 
 
 get_public_keys.key_cache = {}
@@ -58,7 +57,7 @@ def verify_jwt_token(
             )
             issuer = payload["iss"]
             if issuer != expected_issuer:
-                raise Exception("Wrong issuer: {}".format(issuer))
+                raise Exception(f"Wrong issuer: {issuer}")
             valid_token = True
             break
         except Exception as e:

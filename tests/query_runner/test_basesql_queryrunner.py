@@ -59,7 +59,7 @@ class TestBaseSQLQueryRunner(unittest.TestCase):
     def test_apply_auto_limit_origin_no_limit_2(self):
         origin_query_text = "SELECT * FROM fake WHERE id IN (SELECT id FROM fake_2 LIMIT 200)"
         query_text = self.query_runner.apply_auto_limit(origin_query_text, True)
-        self.assertEqual(origin_query_text + " LIMIT 1000", query_text)
+        self.assertEqual(f"{origin_query_text} LIMIT 1000", query_text)
 
     def test_apply_auto_limit_non_select_query(self):
         origin_query_text = ("create table execution_times as "
@@ -81,13 +81,13 @@ class TestBaseSQLQueryRunner(unittest.TestCase):
                             "union all "
                             "select max(id), 'query_results' as table_name from query_results")
         query_text = self.query_runner.apply_auto_limit(origin_query_text, True)
-        self.assertEqual(origin_query_text + " LIMIT 1000", query_text)
+        self.assertEqual(f"{origin_query_text} LIMIT 1000", query_text)
 
     def test_apply_auto_limit_multi_query_add_limit_2(self):
         origin_query_text = "use database demo;\n" \
-                            "select * from data"
+                                "select * from data"
         query_text = self.query_runner.apply_auto_limit(origin_query_text, True)
-        self.assertEqual(origin_query_text + " LIMIT 1000", query_text)
+        self.assertEqual(f"{origin_query_text} LIMIT 1000", query_text)
 
     def test_apply_auto_limit_multi_query_end_with_punc(self):
         origin_query_text = ("select * from table1;\n"

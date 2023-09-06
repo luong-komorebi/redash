@@ -46,10 +46,7 @@ def _convert_datetime(value, fmt):
 def _get_column_lists(columns):
     date_format = _convert_format(current_org.get_setting("date_format"))
     datetime_format = _convert_format(
-        "{} {}".format(
-            current_org.get_setting("date_format"),
-            current_org.get_setting("time_format"),
-        )
+        f'{current_org.get_setting("date_format")} {current_org.get_setting("time_format")}'
     )
 
     special_types = {
@@ -59,12 +56,12 @@ def _get_column_lists(columns):
     }
 
     fieldnames = []
-    special_columns = dict()
+    special_columns = {}
 
     for col in columns:
         fieldnames.append(col["name"])
 
-        for col_type in special_types.keys():
+        for col_type in special_types:
             if col["type"] == col_type:
                 special_columns[col["name"]] = special_types[col_type]
 
@@ -72,11 +69,10 @@ def _get_column_lists(columns):
 
 
 def serialize_query_result(query_result, is_api_user):
-    if is_api_user:
-        publicly_needed_keys = ["data", "retrieved_at"]
-        return project(query_result.to_dict(), publicly_needed_keys)
-    else:
+    if not is_api_user:
         return query_result.to_dict()
+    publicly_needed_keys = ["data", "retrieved_at"]
+    return project(query_result.to_dict(), publicly_needed_keys)
 
 
 def serialize_query_result_to_dsv(query_result, delimiter):

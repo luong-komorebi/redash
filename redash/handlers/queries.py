@@ -181,11 +181,9 @@ class BaseQueryListResource(BaseResource):
 
 def require_access_to_dropdown_queries(user, query_def):
     parameters = query_def.get("options", {}).get("parameters", [])
-    dropdown_query_ids = set(
-        [str(p["queryId"]) for p in parameters if p["type"] == "query"]
-    )
-
-    if dropdown_query_ids:
+    if dropdown_query_ids := {
+        str(p["queryId"]) for p in parameters if p["type"] == "query"
+    }:
         groups = models.Query.all_groups_for_query_ids(dropdown_query_ids)
 
         if len(groups) < len(dropdown_query_ids):
@@ -444,8 +442,7 @@ class QueryRegenerateApiKeyResource(BaseResource):
             }
         )
 
-        result = QuerySerializer(query).serialize()
-        return result
+        return QuerySerializer(query).serialize()
 
 
 class QueryForkResource(BaseResource):

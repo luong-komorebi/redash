@@ -39,15 +39,10 @@ class PseudoJSON(TypeDecorator):
     impl = db.Text
 
     def process_bind_param(self, value, dialect):
-        if value is None:
-            return value
-
-        return json_dumps(value)
+        return value if value is None else json_dumps(value)
 
     def process_result_value(self, value, dialect):
-        if not value:
-            return value
-        return json_loads(value)
+        return value if not value else json_loads(value)
 
 
 class MutableDict(Mutable, dict):
@@ -55,14 +50,13 @@ class MutableDict(Mutable, dict):
     def coerce(cls, key, value):
         "Convert plain dictionaries to MutableDict."
 
-        if not isinstance(value, MutableDict):
-            if isinstance(value, dict):
-                return MutableDict(value)
-
-            # this call will raise ValueError
-            return Mutable.coerce(key, value)
-        else:
+        if isinstance(value, MutableDict):
             return value
+        if isinstance(value, dict):
+            return MutableDict(value)
+
+        # this call will raise ValueError
+        return Mutable.coerce(key, value)
 
     def __setitem__(self, key, value):
         "Detect dictionary set events and emit change events."
@@ -88,12 +82,11 @@ class MutableList(Mutable, list):
 
     @classmethod
     def coerce(cls, key, value):
-        if not isinstance(value, MutableList):
-            if isinstance(value, list):
-                return MutableList(value)
-            return Mutable.coerce(key, value)
-        else:
+        if isinstance(value, MutableList):
             return value
+        if isinstance(value, list):
+            return MutableList(value)
+        return Mutable.coerce(key, value)
 
 
 class json_cast_property(index_property):

@@ -265,7 +265,7 @@ LOG_STDOUT = parse_boolean(os.environ.get("REDASH_LOG_STDOUT", "false"))
 LOG_PREFIX = os.environ.get("REDASH_LOG_PREFIX", "")
 LOG_FORMAT = os.environ.get(
     "REDASH_LOG_FORMAT",
-    LOG_PREFIX + "[%(asctime)s][PID:%(process)d][%(levelname)s][%(name)s] %(message)s",
+    f"{LOG_PREFIX}[%(asctime)s][PID:%(process)d][%(levelname)s][%(name)s] %(message)s",
 )
 RQ_WORKER_JOB_LOG_FORMAT = os.environ.get(
     "REDASH_RQ_WORKER_JOB_LOG_FORMAT",

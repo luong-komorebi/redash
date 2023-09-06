@@ -12,25 +12,26 @@ repo = 'getredash/redash'
 
 def _github_request(method, path, params=None, headers={}):
     if not path.startswith('https://api.github.com'):
-        url = "https://api.github.com/{}".format(path)
+        url = f"https://api.github.com/{path}"
     else:
         url = path
 
     if params is not None:
         params = simplejson.dumps(params)
 
-    response = requests.request(method, url, data=params, auth=auth)
-    return response
+    return requests.request(method, url, data=params, auth=auth)
 
 def exception_from_error(message, response):
-    return Exception("({}) {}: {}".format(response.status_code, message, response.json().get('message', '?')))
+    return Exception(
+        f"({response.status_code}) {message}: {response.json().get('message', '?')}"
+    )
 
 def rc_tag_name(version):
-    return "v{}-rc".format(version)
+    return f"v{version}-rc"
 
 def get_rc_release(version):
     tag = rc_tag_name(version)
-    response = _github_request('get', 'repos/{}/releases/tags/{}'.format(repo, tag))
+    response = _github_request('get', f'repos/{repo}/releases/tags/{tag}')
 
     if response.status_code == 404:
         return None
@@ -44,12 +45,12 @@ def create_release(version, commit_sha):
 
     params = {
         'tag_name': tag,
-        'name': "{} - RC".format(version),
+        'name': f"{version} - RC",
         'target_commitish': commit_sha,
-        'prerelease': True
+        'prerelease': True,
     }
 
-    response = _github_request('post', 'repos/{}/releases'.format(repo), params)
+    response = _github_request('post', f'repos/{repo}/releases', params)
 
     if response.status_code != 201:
         raise exception_from_error("Failed creating new release", response)
@@ -76,16 +77,25 @@ def remove_previous_builds(release):
             raise exception_from_error("Failed deleting asset", response)
 
 def get_changelog(commit_sha):
-    latest_release = _github_request('get', 'repos/{}/releases/latest'.format(repo))
+    latest_release = _github_request('get', f'repos/{repo}/releases/latest')
     if latest_release.status_code != 200:
         raise exception_from_error('Failed getting latest release', latest_release)
 
     latest_release = latest_release.json()
     previous_sha = latest_release['target_commitish']
 
-    args = ['git', '--no-pager', 'log', '--merges', '--grep', 'Merge pull request', '--pretty=format:"%h|%s|%b|%p"', '{}...{}'.format(previous_sha, commit_sha)]
+    args = [
+        'git',
+        '--no-pager',
+        'log',
+        '--merges',
+        '--grep',
+        'Merge pull request',
+        '--pretty=format:"%h|%s|%b|%p"',
+        f'{previous_sha}...{commit_sha}',
+    ]
     log = subprocess.check_output(args)
-    changes = ["Changes since {}:".format(latest_release['name'])]
+    changes = [f"Changes since {latest_release['name']}:"]
 
     for line in log.split('\n'):
         try:
@@ -95,13 +105,13 @@ def get_changelog(commit_sha):
 
         try:
             pull_request = re.match("Merge pull request #(\d+)", subject).groups()[0]
-            pull_request = " #{}".format(pull_request)
+            pull_request = f" #{pull_request}"
         except Exception as ex:
             pull_request = ""
 
         author = subprocess.check_output(['git', 'log', '-1', '--pretty=format:"%an"', parents.split(' ')[-1]])[1:-1]
 
-        changes.append("{}{}: {} ({})".format(sha, pull_request, body.strip(), author))
+        changes.append(f"{sha}{pull_request}: {body.strip()} ({author})")
 
     return "\n".join(changes)
 
@@ -110,7 +120,9 @@ def update_release_commit_sha(release, commit_sha):
         'target_commitish': commit_sha,
     }
 
-    response = _github_request('patch', 'repos/{}/releases/{}'.format(repo, release['id']), params)
+    response = _github_request(
+        'patch', f"repos/{repo}/releases/{release['id']}", params
+    )
 
     if response.status_code != 200:
         raise exception_from_error("Failed updating commit sha for existing release", response)
@@ -125,7 +137,7 @@ def update_release(version, build_filepath, commit_sha):
         else:
             release = create_release(version, commit_sha)
 
-        print("Using release id: {}".format(release['id']))
+        print(f"Using release id: {release['id']}")
 
         remove_previous_builds(release)
         response = upload_asset(release, build_filepath)

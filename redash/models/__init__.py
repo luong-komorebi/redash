@@ -189,10 +189,7 @@ class DataSource(BelongsToOrgMixin, db.Model):
         return json_loads(cache) if cache else None
 
     def get_schema(self, refresh=False):
-        out_schema = None
-        if not refresh:
-            out_schema = self.get_cached_schema()
-
+        out_schema = self.get_cached_schema() if not refresh else None
         if out_schema is None:
             query_runner = self.query_runner
             schema = query_runner.get_schema(get_stats=refresh)
@@ -200,9 +197,7 @@ class DataSource(BelongsToOrgMixin, db.Model):
             try:
                 out_schema = self._sort_schema(schema)
             except Exception:
-                logging.exception(
-                    "Error sorting schema columns for data_source {}".format(self.id)
-                )
+                logging.exception(f"Error sorting schema columns for data_source {self.id}")
                 out_schema = schema
             finally:
                 redis_connection.set(self._schema_key, json_dumps(out_schema))
@@ -217,11 +212,11 @@ class DataSource(BelongsToOrgMixin, db.Model):
 
     @property
     def _schema_key(self):
-        return "data_source:schema:{}".format(self.id)
+        return f"data_source:schema:{self.id}"
 
     @property
     def _pause_key(self):
-        return "ds:{}:pause".format(self.id)
+        return f"ds:{self.id}:pause"
 
     @property
     def paused(self):
@@ -671,7 +666,7 @@ class Query(ChangeTrackingMixin, TimestampMixin, BelongsToOrgMixin, db.Model):
                     query.schedule["day_of_week"],
                     query.schedule_failures,
                 ):
-                    key = "{}:{}".format(query.query_hash, query.data_source_id)
+                    key = f"{query.query_hash}:{query.data_source_id}"
                     outdated_queries[key] = query
             except Exception as e:
                 query.schedule["disabled"] = True
@@ -708,7 +703,7 @@ class Query(ChangeTrackingMixin, TimestampMixin, BelongsToOrgMixin, db.Model):
 
         if multi_byte_search:
             # Since tsvector doesn't work well with CJK languages, use `ilike` too
-            pattern = "%{}%".format(term)
+            pattern = f"%{term}%"
             return (
                 all_queries.filter(
                     or_(cls.name.ilike(pattern), cls.description.ilike(pattern))
@@ -804,7 +799,7 @@ class Query(ChangeTrackingMixin, TimestampMixin, BelongsToOrgMixin, db.Model):
 
         # Query.create will add default TABLE visualization, so use constructor to create bare copy of query
         forked_query = Query(
-            name="Copy of (#{}) {}".format(self.id, self.name), user=user, **kwargs
+            name=f"Copy of (#{self.id}) {self.name}", user=user, **kwargs
         )
 
         for v in sorted(self.visualizations, key=lambda v: v.id):
@@ -828,10 +823,7 @@ class Query(ChangeTrackingMixin, TimestampMixin, BelongsToOrgMixin, db.Model):
 
     @property
     def groups(self):
-        if self.data_source is None:
-            return {}
-
-        return self.data_source.groups
+        return {} if self.data_source is None else self.data_source.groups
 
     @hybrid_property
     def lowercase_name(self):
@@ -955,12 +947,7 @@ def next_state(op, value, threshold):
         else:
             value = str(value)
 
-    if op(value, threshold):
-        new_state = Alert.TRIGGERED_STATE
-    else:
-        new_state = Alert.OK_STATE
-
-    return new_state
+    return Alert.TRIGGERED_STATE if op(value, threshold) else Alert.OK_STATE
 
 
 @generic_repr(
@@ -1003,17 +990,15 @@ class Alert(TimestampMixin, BelongsToOrgMixin, db.Model):
     def evaluate(self):
         data = self.query_rel.latest_query_data.data
 
-        if data["rows"] and self.options["column"] in data["rows"][0]:
-            op = OPERATORS.get(self.options["op"], lambda v, t: False)
+        if not data["rows"] or self.options["column"] not in data["rows"][0]:
+            return self.UNKNOWN_STATE
 
-            value = data["rows"][0][self.options["column"]]
-            threshold = self.options["value"]
+        op = OPERATORS.get(self.options["op"], lambda v, t: False)
 
-            new_state = next_state(op, value, threshold)
-        else:
-            new_state = self.UNKNOWN_STATE
+        value = data["rows"][0][self.options["column"]]
+        threshold = self.options["value"]
 
-        return new_state
+        return next_state(op, value, threshold)
 
     def subscribers(self):
         return User.query.join(AlertSubscription).filter(
@@ -1107,7 +1092,7 @@ class Dashboard(ChangeTrackingMixin, TimestampMixin, BelongsToOrgMixin, db.Model
     __mapper_args__ = {"version_id_col": version}
 
     def __str__(self):
-        return "%s=%s" % (self.id, self.name)
+        return f"{self.id}={self.name}"
 
     @property
     def name_as_slug(self):
@@ -1147,12 +1132,12 @@ class Dashboard(ChangeTrackingMixin, TimestampMixin, BelongsToOrgMixin, db.Model
     def search(cls, org, groups_ids, user_id, search_term):
         # TODO: switch to FTS
         return cls.all(org, groups_ids, user_id).filter(
-            cls.name.ilike("%{}%".format(search_term))
+            cls.name.ilike(f"%{search_term}%")
         )
 
     @classmethod
     def search_by_user(cls, term, user, limit=None):
-        return cls.by_user(user).filter(cls.name.ilike("%{}%".format(term))).limit(limit)
+        return cls.by_user(user).filter(cls.name.ilike(f"%{term}%")).limit(limit)
 
     @classmethod
     def all_tags(cls, org, user):
@@ -1216,7 +1201,7 @@ class Visualization(TimestampMixin, BelongsToOrgMixin, db.Model):
     __tablename__ = "visualizations"
 
     def __str__(self):
-        return "%s %s" % (self.id, self.type)
+        return f"{self.id} {self.type}"
 
     @classmethod
     def get_by_id_and_org(cls, object_id, org):
@@ -1248,7 +1233,7 @@ class Widget(TimestampMixin, BelongsToOrgMixin, db.Model):
     __tablename__ = "widgets"
 
     def __str__(self):
-        return "%s" % self.id
+        return f"{self.id}"
 
     @classmethod
     def get_by_id_and_org(cls, object_id, org):
@@ -1275,12 +1260,7 @@ class Event(db.Model):
     __tablename__ = "events"
 
     def __str__(self):
-        return "%s,%s,%s,%s" % (
-            self.user_id,
-            self.action,
-            self.object_type,
-            self.object_id,
-        )
+        return f"{self.user_id},{self.action},{self.object_type},{self.object_id}"
 
     def to_dict(self):
         return {
@@ -1402,11 +1382,7 @@ class NotificationDestination(BelongsToOrgMixin, db.Model):
 
     @classmethod
     def all(cls, org):
-        notification_destinations = cls.query.filter(cls.org == org).order_by(
-            cls.id.asc()
-        )
-
-        return notification_destinations
+        return cls.query.filter(cls.org == org).order_by(cls.id.asc())
 
     def notify(self, alert, query, user, new_state, app, host):
         schema = get_configuration_schema_for_destination_type(self.type)
@@ -1455,13 +1431,12 @@ class AlertSubscription(TimestampMixin, db.Model):
     def notify(self, alert, query, user, new_state, app, host):
         if self.destination:
             return self.destination.notify(alert, query, user, new_state, app, host)
-        else:
-            # User email subscription, so create an email destination object
-            config = {"addresses": self.user.email}
-            schema = get_configuration_schema_for_destination_type("email")
-            options = ConfigurationContainer(config, schema)
-            destination = get_destination("email", options)
-            return destination.notify(alert, query, user, new_state, app, host, options)
+        # User email subscription, so create an email destination object
+        config = {"addresses": self.user.email}
+        schema = get_configuration_schema_for_destination_type("email")
+        options = ConfigurationContainer(config, schema)
+        destination = get_destination("email", options)
+        return destination.notify(alert, query, user, new_state, app, host, options)
 
 
 @generic_repr("id", "trigger", "user_id", "org_id")
@@ -1482,7 +1457,7 @@ class QuerySnippet(TimestampMixin, db.Model, BelongsToOrgMixin):
         return cls.query.filter(cls.org == org)
 
     def to_dict(self):
-        d = {
+        return {
             "id": self.id,
             "trigger": self.trigger,
             "description": self.description,
@@ -1491,8 +1466,6 @@ class QuerySnippet(TimestampMixin, db.Model, BelongsToOrgMixin):
             "updated_at": self.updated_at,
             "created_at": self.created_at,
         }
-
-        return d
 
 
 def init_db():

@@ -11,9 +11,7 @@ class WidgetAPITest(BaseTestCase):
             "width": width,
         }
 
-        rv = self.make_request("post", "/api/widgets", data=data)
-
-        return rv
+        return self.make_request("post", "/api/widgets", data=data)
 
     def test_create_widget(self):
         dashboard = self.factory.create_dashboard()

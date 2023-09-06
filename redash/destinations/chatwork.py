@@ -37,9 +37,7 @@ class ChatWork(BaseDestination):
                 room_id=options.get("room_id")
             )
 
-            message = ""
-            if alert.custom_subject:
-                message = alert.custom_subject + "\n"
+            message = alert.custom_subject + "\n" if alert.custom_subject else ""
             if alert.custom_body:
                 message += alert.custom_body
             else:

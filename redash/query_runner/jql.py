@@ -52,9 +52,9 @@ def parse_issue(issue, field_mapping):
             else:
                 # these special mapping rules are kept for backwards compatibility
                 if "key" in v:
-                    result["{}_key".format(output_name)] = v["key"]
+                    result[f"{output_name}_key"] = v["key"]
                 if "name" in v:
-                    result["{}_name".format(output_name)] = v["name"]
+                    result[f"{output_name}_name"] = v["name"]
 
                 if k in v:
                     result[output_name] = v[k]
@@ -71,19 +71,15 @@ def parse_issue(issue, field_mapping):
                         if isinstance(listItem, dict):
                             if member_name in listItem:
                                 listValues.append(listItem[member_name])
-                    if len(listValues) > 0:
+                    if listValues:
                         result[
                             field_mapping.get_dict_output_field_name(k, member_name)
                         ] = ",".join(listValues)
 
-            else:
-                # otherwise support list values only for non-dict items
-                listValues = []
-                for listItem in v:
-                    if not isinstance(listItem, dict):
-                        listValues.append(listItem)
-                if len(listValues) > 0:
-                    result[output_name] = ",".join(listValues)
+            elif listValues := [
+                listItem for listItem in v if not isinstance(listItem, dict)
+            ]:
+                result[output_name] = ",".join(listValues)
 
         else:
             result[output_name] = v
@@ -107,19 +103,17 @@ def parse_count(data):
 
 
 class FieldMapping:
-    def __init__(cls, query_field_mapping):
-        cls.mapping = []
+    def __init__(self, query_field_mapping):
+        self.mapping = []
         for k, v in query_field_mapping.items():
             field_name = k
             member_name = None
 
-            # check for member name contained in field name
-            member_parser = re.search("(\w+)\.(\w+)", k)
-            if member_parser:
+            if member_parser := re.search("(\w+)\.(\w+)", field_name):
                 field_name = member_parser.group(1)
                 member_name = member_parser.group(2)
 
-            cls.mapping.append(
+            self.mapping.append(
                 {
                     "field_name": field_name,
                     "member_name": member_name,
@@ -127,24 +121,33 @@ class FieldMapping:
                 }
             )
 
-    def get_output_field_name(cls, field_name):
-        for item in cls.mapping:
-            if item["field_name"] == field_name and not item["member_name"]:
-                return item["output_field_name"]
-        return field_name
+    def get_output_field_name(self, field_name):
+        return next(
+            (
+                item["output_field_name"]
+                for item in self.mapping
+                if item["field_name"] == field_name and not item["member_name"]
+            ),
+            field_name,
+        )
 
-    def get_dict_members(cls, field_name):
-        member_names = []
-        for item in cls.mapping:
-            if item["field_name"] == field_name and item["member_name"]:
-                member_names.append(item["member_name"])
-        return member_names
+    def get_dict_members(self, field_name):
+        return [
+            item["member_name"]
+            for item in self.mapping
+            if item["field_name"] == field_name and item["member_name"]
+        ]
 
-    def get_dict_output_field_name(cls, field_name, member_name):
-        for item in cls.mapping:
-            if item["field_name"] == field_name and item["member_name"] == member_name:
-                return item["output_field_name"]
-        return None
+    def get_dict_output_field_name(self, field_name, member_name):
+        return next(
+            (
+                item["output_field_name"]
+                for item in self.mapping
+                if item["field_name"] == field_name
+                and item["member_name"] == member_name
+            ),
+            None,
+        )
 
 
 class JiraJQL(BaseHTTPQueryRunner):
@@ -164,7 +167,7 @@ class JiraJQL(BaseHTTPQueryRunner):
         self.syntax = "json"
 
     def run_query(self, query, user):
-        jql_url = "{}/rest/api/2/search".format(self.configuration["url"])
+        jql_url = f'{self.configuration["url"]}/rest/api/2/search'
 
         query = json_loads(query)
         query_type = query.pop("queryType", "select")

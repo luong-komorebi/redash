@@ -29,8 +29,7 @@ def upgrade():
     update_query = text("UPDATE dashboards SET tags = :tags WHERE id = :id")
 
     for dashboard in dashboards:
-        tags = compact(flatten(tags_regex.findall(dashboard[1])))
-        if tags:
+        if tags := compact(flatten(tags_regex.findall(dashboard[1]))):
             connection.execute(update_query, tags=tags, id=dashboard[0])
 
 

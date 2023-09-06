@@ -65,7 +65,7 @@ def generate_token(length):
     chars = "abcdefghijklmnopqrstuvwxyz" "ABCDEFGHIJKLMNOPQRSTUVWXYZ" "0123456789"
 
     rand = random.SystemRandom()
-    return "".join(rand.choice(chars) for x in range(length))
+    return "".join(rand.choice(chars) for _ in range(length))
 
 
 class JSONEncoder(simplejson.JSONEncoder):
@@ -79,13 +79,12 @@ class JSONEncoder(simplejson.JSONEncoder):
             result = float(o)
         elif isinstance(o, (datetime.timedelta, uuid.UUID)):
             result = str(o)
-        # See "Date Time String Format" in the ECMA-262 specification.
         elif isinstance(o, datetime.datetime):
             result = o.isoformat()
             if o.microsecond:
                 result = result[:23] + result[26:]
             if result.endswith("+00:00"):
-                result = result[:-6] + "Z"
+                result = f"{result[:-6]}Z"
         elif isinstance(o, datetime.date):
             result = o.isoformat()
         elif isinstance(o, datetime.time):
@@ -130,9 +129,9 @@ def build_url(request, host, path):
     if len(parts) > 1:
         port = parts[1]
         if (port, request.scheme) not in (("80", "http"), ("443", "https")):
-            host = "{}:{}".format(host, port)
+            host = f"{host}:{port}"
 
-    return "{}://{}{}".format(request.scheme, host, path)
+    return f"{request.scheme}://{host}{path}"
 
 
 class UnicodeWriter:
@@ -172,18 +171,12 @@ class UnicodeWriter:
 
 
 def collect_parameters_from_request(args):
-    parameters = {}
-
-    for k, v in args.items():
-        if k.startswith("p_"):
-            parameters[k[2:]] = v
-
-    return parameters
+    return {k[2:]: v for k, v in args.items() if k.startswith("p_")}
 
 
 def base_url(org):
     if settings.MULTI_ORG:
-        return "https://{}/{}".format(settings.HOST, org.slug)
+        return f"https://{settings.HOST}/{org.slug}"
 
     return settings.HOST
 

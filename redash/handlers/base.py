@@ -103,10 +103,7 @@ def paginate(query_set, page, page_size, serializer, **kwargs):
 
 
 def org_scoped_rule(rule):
-    if settings.MULTI_ORG:
-        return "/<org_slug>{}".format(rule)
-
-    return rule
+    return f"/<org_slug>{rule}" if settings.MULTI_ORG else rule
 
 
 def json_response(response):

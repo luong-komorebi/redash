@@ -83,7 +83,7 @@ class Druid(BaseQueryRunner):
         results = json_loads(results)
 
         for row in results["rows"]:
-            table_name = "{}.{}".format(row["TABLE_SCHEMA"], row["TABLE_NAME"])
+            table_name = f'{row["TABLE_SCHEMA"]}.{row["TABLE_NAME"]}'
 
             if table_name not in schema:
                 schema[table_name] = {"name": table_name, "columns": []}

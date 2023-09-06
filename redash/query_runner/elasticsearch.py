@@ -128,17 +128,13 @@ class BaseElasticSearch(BaseQueryRunner):
                     property_data = index_mappings["mappings"][m]["properties"][
                         property_name
                     ]
-                    if property_name not in mappings:
-                        property_type = property_data.get("type", None)
-                        if property_type:
-                            if property_type in ELASTICSEARCH_TYPES_MAPPING:
-                                mappings[property_name] = ELASTICSEARCH_TYPES_MAPPING[
-                                    property_type
-                                ]
-                            else:
-                                mappings[property_name] = TYPE_STRING
-                                # raise Exception("Unknown property type: {0}".format(property_type))
-
+                    if property_type := property_data.get("type", None):
+                        if property_name not in mappings:
+                            mappings[property_name] = (
+                                ELASTICSEARCH_TYPES_MAPPING[property_type]
+                                if property_type in ELASTICSEARCH_TYPES_MAPPING
+                                else TYPE_STRING
+                            )
         return mappings, error
 
     def get_schema(self, *args, **kwargs):
@@ -284,7 +280,7 @@ class BaseElasticSearch(BaseQueryRunner):
         if "error" in raw_result:
             error = raw_result["error"]
             if len(error) > 10240:
-                error = error[:10240] + "... continues"
+                error = f"{error[:10240]}... continues"
 
             raise Exception(error)
         elif "aggregations" in raw_result:
@@ -416,26 +412,25 @@ class Kibana(BaseElasticSearch):
 
             result_columns = []
             result_rows = []
-            if isinstance(query_data, str):
-                _from = 0
-                while True:
-                    query_size = size if limit >= (_from + size) else (limit - _from)
-                    total = self._execute_simple_query(
-                        url + "&size={0}".format(query_size),
-                        self.auth,
-                        _from,
-                        mappings,
-                        result_fields,
-                        result_columns,
-                        result_rows,
-                    )
-                    _from += size
-                    if _from >= limit:
-                        break
-            else:
+            if not isinstance(query_data, str):
                 # TODO: Handle complete ElasticSearch queries (JSON based sent over HTTP POST)
                 raise Exception("Advanced queries are not supported")
 
+            _from = 0
+            while True:
+                query_size = size if limit >= (_from + size) else (limit - _from)
+                total = self._execute_simple_query(
+                    url + "&size={0}".format(query_size),
+                    self.auth,
+                    _from,
+                    mappings,
+                    result_fields,
+                    result_columns,
+                    result_rows,
+                )
+                _from += size
+                if _from >= limit:
+                    break
             json_data = json_dumps({"columns": result_columns, "rows": result_rows})
         except requests.HTTPError as e:
             logger.exception(e)

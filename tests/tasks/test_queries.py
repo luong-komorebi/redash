@@ -158,7 +158,7 @@ class TestEnqueueTask(BaseTestCase):
                 {"Username": "Arik", "query_id": query.id},
             )
             enqueue_query(
-                query.query_text + "2",
+                f"{query.query_text}2",
                 query.data_source,
                 query.user_id,
                 False,
@@ -166,7 +166,7 @@ class TestEnqueueTask(BaseTestCase):
                 {"Username": "Arik", "query_id": query.id},
             )
             enqueue_query(
-                query.query_text + "3",
+                f"{query.query_text}3",
                 query.data_source,
                 query.user_id,
                 False,

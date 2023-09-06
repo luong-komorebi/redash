@@ -52,24 +52,18 @@ def _should_refresh_query(query):
 
 def _apply_default_parameters(query):
     parameters = {p["name"]: p.get("value") for p in query.parameters}
-    if any(parameters):
-        try:
-            return query.parameterized.apply(parameters).query
-        except InvalidParameterError as e:
-            error = u"Skipping refresh of {} because of invalid parameters: {}".format(
-                query.id, str(e)
-            )
-            track_failure(query, error)
-            raise
-        except QueryDetachedFromDataSourceError as e:
-            error = (
-                "Skipping refresh of {} because a related dropdown "
-                "query ({}) is unattached to any datasource."
-            ).format(query.id, e.query_id)
-            track_failure(query, error)
-            raise
-    else:
+    if not any(parameters):
         return query.query_text
+    try:
+        return query.parameterized.apply(parameters).query
+    except InvalidParameterError as e:
+        error = f"Skipping refresh of {query.id} because of invalid parameters: {str(e)}"
+        track_failure(query, error)
+        raise
+    except QueryDetachedFromDataSourceError as e:
+        error = f"Skipping refresh of {query.id} because a related dropdown query ({e.query_id}) is unattached to any datasource."
+        track_failure(query, error)
+        raise
 
 
 class RefreshQueriesError(Exception):
@@ -114,7 +108,7 @@ def refresh_queries():
     }
 
     redis_connection.hmset("redash:status", status)
-    logger.info("Done refreshing queries: %s" % status)
+    logger.info(f"Done refreshing queries: {status}")
 
 
 def cleanup_query_results():
@@ -159,7 +153,7 @@ def remove_ghost_locks():
             redis_connection.delete(lock)
             count += 1
 
-    logger.info("Locks found: {}, Locks removed: {}".format(len(locks), count))
+    logger.info(f"Locks found: {len(locks)}, Locks removed: {count}")
 
 
 @job("schemas")

@@ -16,7 +16,7 @@ class Url(BaseHTTPQueryRunner):
 
         if base_url is not None and base_url != "":
             if query.find("://") > -1:
-                return None, "Accepting only relative URLs to '%s'" % base_url
+                return None, f"Accepting only relative URLs to '{base_url}'"
 
         if base_url is None:
             base_url = ""
@@ -27,12 +27,10 @@ class Url(BaseHTTPQueryRunner):
         if error is not None:
             return None, error
 
-        json_data = response.content.strip()
-
-        if json_data:
+        if json_data := response.content.strip():
             return json_data, None
         else:
-            return None, "Got empty response from '{}'.".format(url)
+            return None, f"Got empty response from '{url}'."
 
 
 register(Url)

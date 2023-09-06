@@ -3,8 +3,7 @@ from urllib.parse import urlparse, urlunparse
 
 
 def fix_assets_path(path):
-    fullpath = os.path.join(os.path.dirname(__file__), "../", path)
-    return fullpath
+    return os.path.join(os.path.dirname(__file__), "../", path)
 
 
 def array_from_string(s):
@@ -36,10 +35,7 @@ def cast_int_or_default(val, default=None):
         return default
 
 def int_or_none(value):
-    if value is None:
-        return value
-
-    return int(value)
+    return value if value is None else int(value)
 
 
 def add_decode_responses_to_redis_url(url):
@@ -48,7 +44,7 @@ def add_decode_responses_to_redis_url(url):
 
     query = "decode_responses=True"
     if parsed.query and "decode_responses" not in parsed.query:
-        query = "{}&{}".format(parsed.query, query)
+        query = f"{parsed.query}&{query}"
     elif "decode_responses" in parsed.query:
         query = parsed.query
 

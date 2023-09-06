@@ -16,8 +16,7 @@ from redash.monitor import rq_status
 @login_required
 def outdated_queries():
     manager_status = redis_connection.hgetall("redash:status")
-    query_ids = json_loads(manager_status.get("query_ids", "[]"))
-    if query_ids:
+    if query_ids := json_loads(manager_status.get("query_ids", "[]")):
         outdated_queries = (
             models.Query.query.outerjoin(models.QueryResult)
             .filter(models.Query.id.in_(query_ids))

@@ -66,9 +66,7 @@ def register(destination_class):
 
 def get_destination(destination_type, configuration):
     destination_class = destinations.get(destination_type, None)
-    if destination_class is None:
-        return None
-    return destination_class(configuration)
+    return None if destination_class is None else destination_class(configuration)
 
 
 def get_configuration_schema_for_destination_type(destination_type):

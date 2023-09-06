@@ -50,10 +50,10 @@ class TestAlertEvaluate(BaseTestCase):
     def create_alert(self, results, column="foo", value="1"):
         result = self.factory.create_query_result(data=results)
         query = self.factory.create_query(latest_query_data_id=result.id)
-        alert = self.factory.create_alert(
-            query_rel=query, options={"op": "equals", "column": column, "value": value}
+        return self.factory.create_alert(
+            query_rel=query,
+            options={"op": "equals", "column": column, "value": value},
         )
-        return alert
 
     def test_evaluate_triggers_alert_when_equal(self):
         alert = self.create_alert(get_results(1))

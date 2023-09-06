@@ -79,12 +79,7 @@ class DataSourceResource(BaseResource):
             models.db.session.commit()
         except IntegrityError as e:
             if req["name"] in str(e):
-                abort(
-                    400,
-                    message="Data source with the name {} already exists.".format(
-                        req["name"]
-                    ),
-                )
+                abort(400, message=f'Data source with the name {req["name"]} already exists.')
 
             abort(400)
 
@@ -169,12 +164,7 @@ class DataSourceListResource(BaseResource):
             models.db.session.commit()
         except IntegrityError as e:
             if req["name"] in str(e):
-                abort(
-                    400,
-                    message="Data source with the name {} already exists.".format(
-                        req["name"]
-                    ),
-                )
+                abort(400, message=f'Data source with the name {req["name"]} already exists.')
 
             abort(400)
 
@@ -214,8 +204,7 @@ class DataSourcePauseResource(BaseResource):
         data_source = get_object_or_404(
             models.DataSource.get_by_id_and_org, data_source_id, self.current_org
         )
-        data = request.get_json(force=True, silent=True)
-        if data:
+        if data := request.get_json(force=True, silent=True):
             reason = data.get("reason")
         else:
             reason = request.args.get("reason")

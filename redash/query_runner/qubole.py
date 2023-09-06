@@ -67,14 +67,15 @@ class Qubole(BaseQueryRunner):
     def test_connection(self):
         headers = self._get_header()
         r = requests.head(
-            "%s/api/latest/users" % self.configuration.get("endpoint"), headers=headers
+            f'{self.configuration.get("endpoint")}/api/latest/users',
+            headers=headers,
         )
         r.status_code == 200
 
     def run_query(self, query, user):
         qbol.configure(
             api_token=self.configuration.get("token"),
-            api_url="%s/api" % self.configuration.get("endpoint"),
+            api_url=f'{self.configuration.get("endpoint")}/api',
         )
 
         try:
@@ -146,8 +147,7 @@ class Qubole(BaseQueryRunner):
         try:
             headers = self._get_header()
             content = requests.get(
-                "%s/api/latest/hive?describe=true&per_page=10000"
-                % self.configuration.get("endpoint"),
+                f'{self.configuration.get("endpoint")}/api/latest/hive?describe=true&per_page=10000',
                 headers=headers,
             )
             data = content.json()
@@ -159,14 +159,12 @@ class Qubole(BaseQueryRunner):
                     columns = [f["name"] for f in table[table_name]["columns"]]
 
                     if schema != "default":
-                        table_name = "{}.{}".format(schema, table_name)
+                        table_name = f"{schema}.{table_name}"
 
                     schemas[table_name] = {"name": table_name, "columns": columns}
 
         except Exception as e:
-            logging.error(
-                "Failed to get schema information from Qubole. Error {}".format(str(e))
-            )
+            logging.error(f"Failed to get schema information from Qubole. Error {str(e)}")
 
         return list(schemas.values())
 

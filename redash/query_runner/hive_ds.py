@@ -97,7 +97,7 @@ class Hive(BaseSQLQueryRunner):
                 ]
 
                 if schema_name != "default":
-                    table_name = "{}.{}".format(schema_name, table_name)
+                    table_name = f"{schema_name}.{table_name}"
 
                 schema[table_name] = {"name": table_name, "columns": columns}
         return list(schema.values())
@@ -105,14 +105,12 @@ class Hive(BaseSQLQueryRunner):
     def _get_connection(self):
         host = self.configuration["host"]
 
-        connection = hive.connect(
+        return hive.connect(
             host=host,
             port=self.configuration.get("port", None),
             database=self.configuration.get("database", "default"),
             username=self.configuration.get("username", None),
         )
-
-        return connection
 
     def run_query(self, query, user):
         connection = None
@@ -206,14 +204,14 @@ class HiveHttp(Hive):
         # if path is set but is missing initial slash, append it
         path = self.configuration.get("http_path", "")
         if path and path[0] != "/":
-            path = "/" + path
+            path = f"/{path}"
 
         # if port is set prepend colon
         port = self.configuration.get("port", "")
         if port:
-            port = ":" + str(port)
+            port = f":{str(port)}"
 
-        http_uri = "{}://{}{}{}".format(scheme, host, port, path)
+        http_uri = f"{scheme}://{host}{port}{path}"
 
         # create transport
         transport = THttpClient.THttpClient(http_uri)
@@ -223,12 +221,9 @@ class HiveHttp(Hive):
         password = self.configuration.get("http_password", "")
         if username or password:
             auth = base64.b64encode(username.encode("ascii") + b":" + password.encode("ascii"))
-            transport.setCustomHeaders({"Authorization": "Basic " + auth.decode()})
+            transport.setCustomHeaders({"Authorization": f"Basic {auth.decode()}"})
 
-        # create connection
-        connection = hive.connect(thrift_transport=transport)
-
-        return connection
+        return hive.connect(thrift_transport=transport)
 
 
 register(Hive)

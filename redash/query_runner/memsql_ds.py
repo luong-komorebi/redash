@@ -77,14 +77,7 @@ class MemSQL(BaseSQLQueryRunner):
             ]
             if len(a) > 0
         ]:
-            for table_name in [
-                a
-                for a in [
-                    str(a["Tables_in_%s" % schema_name])
-                    for a in self._run_query_internal(tables_query % schema_name)
-                ]
-                if len(a) > 0
-            ]:
+            for table_name in [a for a in [str(a[f"Tables_in_{schema_name}"]) for a in self._run_query_internal(tables_query % schema_name)] if len(a) > 0]:
                 table_name = ".".join((schema_name, table_name))
                 columns = [
                     a
@@ -127,11 +120,10 @@ class MemSQL(BaseSQLQueryRunner):
             column_names = rows[0].keys() if rows else None
 
             if column_names:
-                for column in column_names:
-                    columns.append(
-                        {"name": column, "friendly_name": column, "type": TYPE_STRING}
-                    )
-
+                columns.extend(
+                    {"name": column, "friendly_name": column, "type": TYPE_STRING}
+                    for column in column_names
+                )
             data = {"columns": columns, "rows": rows}
             json_data = json_dumps(data)
             error = None

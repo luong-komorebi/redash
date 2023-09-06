@@ -27,9 +27,9 @@ class Mattermost(BaseDestination):
         if alert.custom_subject:
             text = alert.custom_subject
         elif new_state == "triggered":
-            text = "#### " + alert.name + " just triggered"
+            text = f"#### {alert.name} just triggered"
         else:
-            text = "#### " + alert.name + " went back to normal"
+            text = f"#### {alert.name} went back to normal"
         payload = {"text": text}
 
         if alert.custom_body:

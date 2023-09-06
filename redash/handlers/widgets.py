@@ -35,8 +35,7 @@ class WidgetListResource(BaseResource):
         widget_properties["options"] = json_dumps(widget_properties["options"])
         widget_properties.pop("id", None)
 
-        visualization_id = widget_properties.pop("visualization_id")
-        if visualization_id:
+        if visualization_id := widget_properties.pop("visualization_id"):
             visualization = models.Visualization.get_by_id_and_org(
                 visualization_id, self.current_org
             )

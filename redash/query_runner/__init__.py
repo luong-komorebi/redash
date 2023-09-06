@@ -47,9 +47,14 @@ TYPE_STRING = "string"
 TYPE_DATETIME = "datetime"
 TYPE_DATE = "date"
 
-SUPPORTED_COLUMN_TYPES = set(
-    [TYPE_INTEGER, TYPE_FLOAT, TYPE_BOOLEAN, TYPE_STRING, TYPE_DATETIME, TYPE_DATE]
-)
+SUPPORTED_COLUMN_TYPES = {
+    TYPE_INTEGER,
+    TYPE_FLOAT,
+    TYPE_BOOLEAN,
+    TYPE_STRING,
+    TYPE_DATETIME,
+    TYPE_DATE,
+}
 
 def split_sql_statements(query):
     def strip_trailing_comments(stmt):
@@ -87,25 +92,26 @@ def split_sql_statements(query):
 
     stack = sqlparse.engine.FilterStack()
 
-    result = [stmt for stmt in stack.run(query)]
+    result = list(stack.run(query))
     result = [strip_trailing_comments(stmt) for stmt in result]
     result = [strip_trailing_semicolon(stmt) for stmt in result]
     result = [sqlparse.text_type(stmt).strip() for stmt in result if not is_empty_statement(stmt)]
 
-    if len(result) > 0:
-        return result
-
-    return [""]  # if all statements were empty - return a single empty statement
+    return result if result else [""]
 
 
 def combine_sql_statements(queries):
     return ";\n".join(queries)
 
 def find_last_keyword_idx(parsed_query):
-    for i in reversed(range(len(parsed_query.tokens))):
-        if parsed_query.tokens[i].ttype in sqlparse.tokens.Keyword:
-            return i
-    return -1
+    return next(
+        (
+            i
+            for i in reversed(range(len(parsed_query.tokens)))
+            if parsed_query.tokens[i].ttype in sqlparse.tokens.Keyword
+        ),
+        -1,
+    )
 
 class InterruptException(Exception):
     pass
@@ -198,9 +204,8 @@ class BaseQueryRunner(object):
         if not self.should_annotate_query:
             return query
 
-        annotation = ", ".join(["{}: {}".format(k, v) for k, v in metadata.items()])
-        annotated_query = "/* {} */ {}".format(annotation, query)
-        return annotated_query
+        annotation = ", ".join([f"{k}: {v}" for k, v in metadata.items()])
+        return f"/* {annotation} */ {query}"
 
     def test_connection(self):
         if self.noop_query is None:
@@ -221,7 +226,7 @@ class BaseQueryRunner(object):
         for col in columns:
             column_name = col[0]
             if column_name in column_names:
-                column_name = "{}{}".format(column_name, duplicates_counter)
+                column_name = f"{column_name}{duplicates_counter}"
                 duplicates_counter += 1
 
             column_names.append(column_name)
@@ -238,7 +243,7 @@ class BaseQueryRunner(object):
         results, error = self.run_query(query, None)
 
         if error is not None:
-            raise Exception("Failed running query [%s]." % query)
+            raise Exception(f"Failed running query [{query}].")
         return json_loads(results)["rows"]
 
     @classmethod
@@ -276,7 +281,7 @@ class BaseSQLQueryRunner(BaseQueryRunner):
     def _get_tables_stats(self, tables_dict):
         for t in tables_dict.keys():
             if type(tables_dict[t]) == dict:
-                res = self._run_query_internal("select count(*) as cnt from %s" % t)
+                res = self._run_query_internal(f"select count(*) as cnt from {t}")
                 tables_dict[t]["size"] = res[0]["cnt"]
 
     @property
@@ -290,9 +295,10 @@ class BaseSQLQueryRunner(BaseQueryRunner):
         if last_keyword_idx == -1 or parsed_query.tokens[0].value.upper() != "SELECT":
             return False
 
-        no_limit = parsed_query.tokens[last_keyword_idx].value.upper() not in self.limit_keywords
-
-        return no_limit
+        return (
+            parsed_query.tokens[last_keyword_idx].value.upper()
+            not in self.limit_keywords
+        )
 
     def add_limit_to_query(self, query):
         parsed_query = sqlparse.parse(query)[0]
@@ -306,15 +312,14 @@ class BaseSQLQueryRunner(BaseQueryRunner):
 
 
     def apply_auto_limit(self, query_text, should_apply_auto_limit):
-        if should_apply_auto_limit:
-            queries = split_sql_statements(query_text)
-            # we only check for last one in the list because it is the one that we show result
-            last_query = queries[-1]
-            if self.query_is_select_no_limit(last_query):
-                queries[-1] = self.add_limit_to_query(last_query)
-            return combine_sql_statements(queries)
-        else:
+        if not should_apply_auto_limit:
             return query_text
+        queries = split_sql_statements(query_text)
+        # we only check for last one in the list because it is the one that we show result
+        last_query = queries[-1]
+        if self.query_is_select_no_limit(last_query):
+            queries[-1] = self.add_limit_to_query(last_query)
+        return combine_sql_statements(queries)
 
 
 class BaseHTTPQueryRunner(BaseQueryRunner):
@@ -378,13 +383,11 @@ class BaseHTTPQueryRunner(BaseQueryRunner):
 
             # Any other responses (e.g. 2xx and 3xx):
             if response.status_code != 200:
-                error = "{} ({}).".format(self.response_error, response.status_code)
+                error = f"{self.response_error} ({response.status_code})."
 
         except requests_or_advocate.HTTPError as exc:
             logger.exception(exc)
-            error = "Failed to execute query. " "Return Code: {} Reason: {}".format(
-                response.status_code, response.text
-            )
+            error = f"Failed to execute query. Return Code: {response.status_code} Reason: {response.text}"
         except UnacceptableAddressException as exc:
             logger.exception(exc)
             error = "Can't query private addresses."
@@ -465,7 +468,7 @@ def guess_type_from_string(string_value):
     except (ValueError, OverflowError):
         pass
 
-    if str(string_value).lower() in ("true", "false"):
+    if str(string_value).lower() in {"true", "false"}:
         return TYPE_BOOLEAN
 
     try:

@@ -10,7 +10,7 @@ logger = get_job_logger(__name__)
 
 
 def key(user_id):
-    return "aggregated_failures:{}".format(user_id)
+    return f"aggregated_failures:{user_id}"
 
 
 def comment_for(failure):
@@ -31,9 +31,9 @@ def send_aggregated_errors():
 
 def send_failure_report(user_id):
     user = models.User.get_by_id(user_id)
-    errors = [json_loads(e) for e in redis_connection.lrange(key(user_id), 0, -1)]
-
-    if errors:
+    if errors := [
+        json_loads(e) for e in redis_connection.lrange(key(user_id), 0, -1)
+    ]:
         errors.reverse()
         occurrences = Counter((e.get("id"), e.get("message")) for e in errors)
         unique_errors = {(e.get("id"), e.get("message")): e for e in errors}
@@ -53,11 +53,9 @@ def send_failure_report(user_id):
             "base_url": base_url(user.org),
         }
 
-        subject = "Redash failed to execute {} of your scheduled queries".format(
-            len(unique_errors.keys())
-        )
+        subject = f"Redash failed to execute {len(unique_errors.keys())} of your scheduled queries"
         html, text = [
-            render_template("emails/failures.{}".format(f), context)
+            render_template(f"emails/failures.{f}", context)
             for f in ["html", "txt"]
         ]
 

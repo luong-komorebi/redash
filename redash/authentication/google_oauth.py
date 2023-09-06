@@ -21,13 +21,7 @@ def verify_profile(org, profile):
     email = profile["email"]
     domain = email.split("@")[-1]
 
-    if domain in org.google_apps_domains:
-        return True
-
-    if org.has_user(email) == 1:
-        return True
-
-    return False
+    return True if domain in org.google_apps_domains else org.has_user(email) == 1
 
 
 def create_google_oauth_blueprint(app):
@@ -114,7 +108,7 @@ def create_google_oauth_blueprint(app):
             )
             return redirect(url_for("redash.login", org_slug=org.slug))
 
-        picture_url = "%s?sz=40" % profile["picture"]
+        picture_url = f'{profile["picture"]}?sz=40'
         user = create_and_login_user(
             org, profile["name"], profile["email"], picture_url
         )

@@ -77,7 +77,7 @@ class Phoenix(BaseQueryRunner):
         results = json_loads(results)
 
         for row in results["rows"]:
-            table_name = "{}.{}".format(row["TABLE_SCHEM"], row["TABLE_NAME"])
+            table_name = f'{row["TABLE_SCHEM"]}.{row["TABLE_NAME"]}'
 
             if table_name not in schema:
                 schema[table_name] = {"name": table_name, "columns": []}
@@ -101,7 +101,7 @@ class Phoenix(BaseQueryRunner):
             columns = self.fetch_columns(column_tuples)
             rows = [
                 dict(zip(([column["name"] for column in columns]), r))
-                for i, r in enumerate(cursor.fetchall())
+                for r in cursor.fetchall()
             ]
             data = {"columns": columns, "rows": rows}
             json_data = json_dumps(data)
@@ -109,9 +109,7 @@ class Phoenix(BaseQueryRunner):
             cursor.close()
         except Error as e:
             json_data = None
-            error = "code: {}, sql state:{}, message: {}".format(
-                e.code, e.sqlstate, str(e)
-            )
+            error = f"code: {e.code}, sql state:{e.sqlstate}, message: {str(e)}"
         finally:
             if connection:
                 connection.close()

@@ -197,8 +197,7 @@ class DashboardResource(BaseResource):
             dashboard, with_widgets=True, user=self.current_user
         ).serialize()
 
-        api_key = models.ApiKey.get_by_object(dashboard)
-        if api_key:
+        if api_key := models.ApiKey.get_by_object(dashboard):
             response["public_url"] = url_for(
                 "redash.public_dashboard",
                 token=api_key.api_key,
@@ -359,9 +358,7 @@ class DashboardShareResource(BaseResource):
         """
         dashboard = models.Dashboard.get_by_id_and_org(dashboard_id, self.current_org)
         require_admin_or_owner(dashboard.user_id)
-        api_key = models.ApiKey.get_by_object(dashboard)
-
-        if api_key:
+        if api_key := models.ApiKey.get_by_object(dashboard):
             api_key.active = False
             models.db.session.add(api_key)
             models.db.session.commit()

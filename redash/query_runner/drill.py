@@ -47,17 +47,11 @@ def parse_response(data):
         return {"columns": [], "rows": []}
 
     first_row = rows[0]
-    columns = []
-    types = {}
-
-    for c in cols:
-        columns.append(
-            {"name": c, "type": guess_type(first_row[c]), "friendly_name": c}
-        )
-
-    for col in columns:
-        types[col["name"]] = col["type"]
-
+    columns = [
+        {"name": c, "type": guess_type(first_row[c]), "friendly_name": c}
+        for c in cols
+    ]
+    types = {col["name"]: col["type"] for col in columns}
     for row in rows:
         for key, value in row.items():
             row[key] = convert_type(value, types[key])
@@ -121,16 +115,8 @@ class Drill(BaseHTTPQueryRunner):
             and TABLE_SCHEMA not like '%.INFORMATION_SCHEMA'
 
         """
-        allowed_schemas = self.configuration.get("allowed_schemas")
-        if allowed_schemas:
-            query += "and TABLE_SCHEMA in ({})".format(
-                ", ".join(
-                    [
-                        "'{}'".format(re.sub("[^a-zA-Z0-9_.`]", "", allowed_schema))
-                        for allowed_schema in allowed_schemas.split(",")
-                    ]
-                )
-            )
+        if allowed_schemas := self.configuration.get("allowed_schemas"):
+            query += f'''and TABLE_SCHEMA in ({", ".join([f"""'{re.sub("[^a-zA-Z0-9_.`]", "", allowed_schema)}'""" for allowed_schema in allowed_schemas.split(",")])})'''
 
         results, error = self.run_query(query, None)
 
@@ -142,7 +128,7 @@ class Drill(BaseHTTPQueryRunner):
         schema = {}
 
         for row in results["rows"]:
-            table_name = "{}.{}".format(row["TABLE_SCHEMA"], row["TABLE_NAME"])
+            table_name = f'{row["TABLE_SCHEMA"]}.{row["TABLE_NAME"]}'
 
             if table_name not in schema:
                 schema[table_name] = {"name": table_name, "columns": []}

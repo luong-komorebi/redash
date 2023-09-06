@@ -55,14 +55,13 @@ class Mapd(BaseSQLQueryRunner):
         return enabled
 
     def connect_database(self):
-        connection = pymapd.connect(
+        return pymapd.connect(
             user=self.configuration["user"],
             password=self.configuration["password"],
             host=self.configuration["host"],
             port=self.configuration["port"],
             dbname=self.configuration["database"],
         )
-        return connection
 
     def run_query(self, query, user):
         connection = self.connect_database()

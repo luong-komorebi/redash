@@ -75,9 +75,7 @@ class Snowflake(BaseQueryRunner):
     @classmethod
     def determine_type(cls, data_type, scale):
         t = TYPES_MAP.get(data_type, None)
-        if t == TYPE_INTEGER and scale > 0:
-            return TYPE_FLOAT
-        return t
+        return TYPE_FLOAT if t == TYPE_INTEGER and scale > 0 else t
 
     def _get_connection(self):
         region = self.configuration.get("region")
@@ -89,21 +87,18 @@ class Snowflake(BaseQueryRunner):
 
         if self.configuration.__contains__("host"):
             host = self.configuration.get("host")
+        elif region:
+            host = f"{account}.{region}.snowflakecomputing.com"
         else:
-            if region:
-                host = "{}.{}.snowflakecomputing.com".format(account, region)
-            else:
-                host = "{}.snowflakecomputing.com".format(account)
+            host = f"{account}.snowflakecomputing.com"
 
-        connection = snowflake.connector.connect(
+        return snowflake.connector.connect(
             user=self.configuration["user"],
             password=self.configuration["password"],
             account=account,
             region=region,
             host=host,
         )
-
-        return connection
 
     def _column_name(self, column_name):
         if self.configuration.get("lower_case_columns", False):
@@ -122,16 +117,15 @@ class Snowflake(BaseQueryRunner):
             dict(zip((column["name"] for column in columns), row)) for row in cursor
         ]
 
-        data = {"columns": columns, "rows": rows}
-        return data
+        return {"columns": columns, "rows": rows}
 
     def run_query(self, query, user):
         connection = self._get_connection()
         cursor = connection.cursor()
 
         try:
-            cursor.execute("USE WAREHOUSE {}".format(self.configuration["warehouse"]))
-            cursor.execute("USE {}".format(self.configuration["database"]))
+            cursor.execute(f'USE WAREHOUSE {self.configuration["warehouse"]}')
+            cursor.execute(f'USE {self.configuration["database"]}')
 
             cursor.execute(query)
 
@@ -149,7 +143,7 @@ class Snowflake(BaseQueryRunner):
         cursor = connection.cursor()
 
         try:
-            cursor.execute("USE {}".format(self.configuration["database"]))
+            cursor.execute(f'USE {self.configuration["database"]}')
 
             cursor.execute(query)
 
@@ -178,7 +172,7 @@ class Snowflake(BaseQueryRunner):
         schema = {}
         for row in results["rows"]:
             if row["kind"] == "COLUMN":
-                table_name = "{}.{}".format(row["schema_name"], row["table_name"])
+                table_name = f'{row["schema_name"]}.{row["table_name"]}'
 
                 if table_name not in schema:
                     schema[table_name] = {"name": table_name, "columns": []}

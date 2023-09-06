@@ -35,9 +35,7 @@ def upgrade():
                 "Can't run this migration as you already have is_draft columns, please run:"
             )
             print(
-                "./manage.py db stamp {} # you might need to alter the command to match your environment.".format(
-                    revision
-                )
+                f"./manage.py db stamp {revision} # you might need to alter the command to match your environment."
             )
             exit()
 

@@ -16,8 +16,7 @@ class QueryTest(BaseTestCase):
 
     def create_tagged_query(self, tags):
         ds = self.factory.create_data_source(group=self.factory.default_group)
-        query = self.factory.create_query(data_source=ds, tags=tags)
-        return query
+        return self.factory.create_query(data_source=ds, tags=tags)
 
     def test_all_tags(self):
         self.create_tagged_query(tags=["tag1"])
@@ -379,10 +378,10 @@ class TestQueryFork(BaseTestCase):
         forked_table = None
         count_table = 0
         for v in forked_query.visualizations:
-            if v.description == "chart vis":
-                forked_visualization_chart = v
             if v.description == "box vis":
                 forked_visualization_box = v
+            elif v.description == "chart vis":
+                forked_visualization_chart = v
             if v.type == "TABLE":
                 count_table += 1
                 forked_table = v
@@ -477,7 +476,7 @@ class TestQueryUpdateLatestResult(BaseTestCase):
     def test_doesnt_update_queries_with_different_hash(self):
         query1 = self.factory.create_query(query_text=self.query)
         query2 = self.factory.create_query(query_text=self.query)
-        query3 = self.factory.create_query(query_text=self.query + "123")
+        query3 = self.factory.create_query(query_text=f"{self.query}123")
 
         query_result = QueryResult.store_result(
             self.data_source.org_id,

@@ -22,13 +22,15 @@ logger = logging.getLogger(__name__)
 
 
 def get_google_auth_url(next_path):
-    if settings.MULTI_ORG:
-        google_auth_url = url_for(
-            "google_oauth.authorize_org", next=next_path, org_slug=current_org.slug
+    return (
+        url_for(
+            "google_oauth.authorize_org",
+            next=next_path,
+            org_slug=current_org.slug,
         )
-    else:
-        google_auth_url = url_for("google_oauth.authorize", next=next_path)
-    return google_auth_url
+        if settings.MULTI_ORG
+        else url_for("google_oauth.authorize", next=next_path)
+    )
 
 
 def render_token_login_page(template, org_slug, token, invite):
@@ -187,11 +189,8 @@ def verification_email(org_slug=None):
 def login(org_slug=None):
     # We intentionally use == as otherwise it won't actually use the proxy. So weird :O
     # noinspection PyComparisonWithNone
-    if current_org == None and not settings.MULTI_ORG:
-        return redirect("/setup")
-    elif current_org == None:
-        return redirect("/")
-
+    if current_org is None:
+        return redirect("/setup") if not settings.MULTI_ORG else redirect("/")
     index_url = url_for("redash.index", org_slug=org_slug)
     unsafe_next_path = request.args.get("next", index_url)
     next_path = get_next_path(unsafe_next_path)
@@ -199,24 +198,25 @@ def login(org_slug=None):
         return redirect(next_path)
 
 
-    if request.method == "POST" and current_org.get_setting("auth_password_login_enabled"):
-        try:
-            org = current_org._get_current_object()
-            user = models.User.get_by_email_and_org(request.form["email"], org)
-            if (
-                user
-                and not user.is_disabled
-                and user.verify_password(request.form["password"])
-            ):
-                remember = "remember" in request.form
-                login_user(user, remember=remember)
-                return redirect(next_path)
-            else:
+    if request.method == "POST":
+        if current_org.get_setting("auth_password_login_enabled"):
+            try:
+                org = current_org._get_current_object()
+                user = models.User.get_by_email_and_org(request.form["email"], org)
+                if (
+                    user
+                    and not user.is_disabled
+                    and user.verify_password(request.form["password"])
+                ):
+                    remember = "remember" in request.form
+                    login_user(user, remember=remember)
+                    return redirect(next_path)
+                else:
+                    flash("Wrong email or password.")
+            except NoResultFound:
                 flash("Wrong email or password.")
-        except NoResultFound:
-            flash("Wrong email or password.")
-    elif request.method == "POST" and not current_org.get_setting("auth_password_login_enabled"):
-        flash("Password login is not enabled for your organization.")
+        elif not current_org.get_setting("auth_password_login_enabled"):
+            flash("Password login is not enabled for your organization.")
 
 
 
@@ -243,19 +243,18 @@ def logout(org_slug=None):
 
 
 def base_href():
-    if settings.MULTI_ORG:
-        base_href = url_for("redash.index", _external=True, org_slug=current_org.slug)
-    else:
-        base_href = url_for("redash.index", _external=True)
-
-    return base_href
+    return (
+        url_for("redash.index", _external=True, org_slug=current_org.slug)
+        if settings.MULTI_ORG
+        else url_for("redash.index", _external=True)
+    )
 
 
 def date_time_format_config():
     date_format = current_org.get_setting("date_format")
-    date_format_list = set(["DD/MM/YY", "MM/DD/YY", "YYYY-MM-DD", settings.DATE_FORMAT])
+    date_format_list = {"DD/MM/YY", "MM/DD/YY", "YYYY-MM-DD", settings.DATE_FORMAT}
     time_format = current_org.get_setting("time_format")
-    time_format_list = set(["HH:mm", "HH:mm:ss", "HH:mm:ss.SSS", settings.TIME_FORMAT])
+    time_format_list = {"HH:mm", "HH:mm:ss", "HH:mm:ss.SSS", settings.TIME_FORMAT}
     return {
         "dateFormat": date_format,
         "dateFormatList": list(date_format_list),
@@ -308,9 +307,9 @@ def client_config():
         "tableCellMaxJSONSize": settings.TABLE_CELL_MAX_JSON_SIZE,
     }
 
-    client_config.update(defaults)
-    client_config.update({"basePath": base_href()})
-    client_config.update(date_time_format_config())
+    client_config |= defaults
+    client_config["basePath"] = base_href()
+    client_config |= date_time_format_config()
     client_config.update(number_format_config())
 
     return client_config

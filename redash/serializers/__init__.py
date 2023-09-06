@@ -243,7 +243,7 @@ def serialize_dashboard(obj, with_widgets=False, user=None, with_favorite_state=
     else:
         widgets = None
 
-    d = {
+    return {
         "id": obj.id,
         "slug": obj.name_as_slug,
         "name": obj.name,
@@ -265,8 +265,6 @@ def serialize_dashboard(obj, with_widgets=False, user=None, with_favorite_state=
         "created_at": obj.created_at,
         "version": obj.version,
     }
-
-    return d
 
 
 class DashboardSerializer(Serializer):
@@ -308,11 +306,7 @@ def serialize_job(job):
     }
 
     job_status = job.get_status()
-    if job.is_started:
-        updated_at = job.started_at or 0
-    else:
-        updated_at = 0
-
+    updated_at = job.started_at or 0 if job.is_started else 0
     status = STATUSES[job_status]
     result = query_result_id = None
 

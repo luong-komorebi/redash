@@ -57,11 +57,10 @@ def parse_ga_response(response):
                 if "primitiveValue" in value:
                     value = value["primitiveValue"]
                 elif "conversionPathValue" in value:
-                    steps = []
-                    for step in value["conversionPathValue"]:
-                        steps.append(
-                            "{}:{}".format(step["interactionType"], step["nodeValue"])
-                        )
+                    steps = [
+                        f'{step["interactionType"]}:{step["nodeValue"]}'
+                        for step in value["conversionPathValue"]
+                    ]
                     value = ", ".join(steps)
                 else:
                     raise Exception("Results format not supported")
@@ -74,9 +73,7 @@ def parse_ga_response(response):
                 elif len(value) == 12:
                     value = datetime.strptime(value, "%Y%m%d%H%M")
                 else:
-                    raise Exception(
-                        "Unknown date/time format in results: '{}'".format(value)
-                    )
+                    raise Exception(f"Unknown date/time format in results: '{value}'")
 
             d[column_name] = value
         rows.append(d)
@@ -129,24 +126,23 @@ class GoogleAnalytics(BaseSQLQueryRunner):
         )
         if accounts is None:
             raise Exception("Failed getting accounts.")
-        else:
-            for account in accounts:
-                schema[account["name"]] = {"name": account["name"], "columns": []}
-                properties = (
-                    self._get_analytics_service()
-                    .management()
-                    .webproperties()
-                    .list(accountId=account["id"])
-                    .execute()
-                    .get("items", [])
-                )
-                for property_ in properties:
-                    if "defaultProfileId" in property_ and "name" in property_:
-                        schema[account["name"]]["columns"].append(
-                            "{0} (ga:{1})".format(
-                                property_["name"], property_["defaultProfileId"]
-                            )
+        for account in accounts:
+            schema[account["name"]] = {"name": account["name"], "columns": []}
+            properties = (
+                self._get_analytics_service()
+                .management()
+                .webproperties()
+                .list(accountId=account["id"])
+                .execute()
+                .get("items", [])
+            )
+            for property_ in properties:
+                if "defaultProfileId" in property_ and "name" in property_:
+                    schema[account["name"]]["columns"].append(
+                        "{0} (ga:{1})".format(
+                            property_["name"], property_["defaultProfileId"]
                         )
+                    )
 
         return list(schema.values())
 
@@ -179,7 +175,7 @@ class GoogleAnalytics(BaseSQLQueryRunner):
         else:
             api = self._get_analytics_service().data().ga()
 
-        if len(params) > 0:
+        if params:
             try:
                 response = api.get(**params).execute()
                 data = parse_ga_response(response)

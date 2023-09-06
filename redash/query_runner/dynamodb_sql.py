@@ -97,7 +97,7 @@ class DynamoDBSQL(BaseSQLQueryRunner):
             engine = self._connect()
 
             if not query.endswith(";"):
-                query = query + ";"
+                query = f"{query};"
 
             result = engine.execute(query)
 
@@ -115,23 +115,21 @@ class DynamoDBSQL(BaseSQLQueryRunner):
 
             for item in result:
                 if not columns:
-                    for k, v in item.items():
-                        columns.append(
-                            {
-                                "name": k,
-                                "friendly_name": k,
-                                "type": types_map.get(str(type(v)).upper(), None),
-                            }
-                        )
+                    columns.extend(
+                        {
+                            "name": k,
+                            "friendly_name": k,
+                            "type": types_map.get(str(type(v)).upper(), None),
+                        }
+                        for k, v in item.items()
+                    )
                 rows.append(item)
 
             data = {"columns": columns, "rows": rows}
             json_data = json_dumps(data)
             error = None
         except ParseException as e:
-            error = "Error parsing query at line {} (column {}):\n{}".format(
-                e.lineno, e.column, e.line
-            )
+            error = f"Error parsing query at line {e.lineno} (column {e.column}):\n{e.line}"
             json_data = None
         except (KeyboardInterrupt, JobTimeoutException):
             if engine and engine.connection:

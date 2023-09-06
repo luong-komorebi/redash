@@ -71,7 +71,7 @@ class DB2(BaseSQLQueryRunner):
 
         for row in results["rows"]:
             if row["TABLE_SCHEMA"] != "public":
-                table_name = "{}.{}".format(row["TABLE_SCHEMA"], row["TABLE_NAME"])
+                table_name = f'{row["TABLE_SCHEMA"]}.{row["TABLE_NAME"]}'
             else:
                 table_name = row["TABLE_NAME"]
 
@@ -95,16 +95,8 @@ class DB2(BaseSQLQueryRunner):
         return list(schema.values())
 
     def _get_connection(self):
-        self.connection_string = "DATABASE={};HOSTNAME={};PORT={};PROTOCOL=TCPIP;UID={};PWD={};".format(
-            self.configuration["dbname"],
-            self.configuration["host"],
-            self.configuration["port"],
-            self.configuration["user"],
-            self.configuration["password"],
-        )
-        connection = ibm_db_dbi.connect(self.connection_string, "", "")
-
-        return connection
+        self.connection_string = f'DATABASE={self.configuration["dbname"]};HOSTNAME={self.configuration["host"]};PORT={self.configuration["port"]};PROTOCOL=TCPIP;UID={self.configuration["user"]};PWD={self.configuration["password"]};'
+        return ibm_db_dbi.connect(self.connection_string, "", "")
 
     def run_query(self, query, user):
         connection = self._get_connection()

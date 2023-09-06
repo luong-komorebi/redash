@@ -86,10 +86,9 @@ class Salesforce(BaseQueryRunner):
         response = self._get_sf().describe()
         if response is None:
             raise Exception("Failed describing objects.")
-        pass
 
     def _get_sf(self):
-        sf = SimpleSalesforce(
+        return SimpleSalesforce(
             username=self.configuration["username"],
             password=self.configuration["password"],
             security_token=self.configuration["token"],
@@ -97,7 +96,6 @@ class Salesforce(BaseQueryRunner):
             version=self.configuration.get("api_version", DEFAULT_API_VERSION),
             client_id="Redash",
         )
-        return sf
 
     def _clean_value(self, value):
         if isinstance(value, OrderedDict) and "records" in value:
@@ -108,10 +106,7 @@ class Salesforce(BaseQueryRunner):
 
     def _get_value(self, dct, dots):
         for key in dots.split("."):
-            if dct is not None and key in dct:
-                dct = dct.get(key)
-            else:
-                dct = None
+            dct = dct.get(key) if dct is not None and key in dct else None
         return dct
 
     def _get_column_name(self, key, parents=[]):
@@ -120,7 +115,7 @@ class Salesforce(BaseQueryRunner):
     def _build_columns(self, sf, child, parents=[]):
         child_type = child["attributes"]["type"]
         child_desc = sf.__getattr__(child_type).describe()
-        child_type_map = dict((f["name"], f["type"]) for f in child_desc["fields"])
+        child_type_map = {f["name"]: f["type"] for f in child_desc["fields"]}
         columns = []
         for key in child.keys():
             if key != "attributes":
@@ -137,7 +132,7 @@ class Salesforce(BaseQueryRunner):
         rows = []
         for record in records:
             record.pop("attributes", None)
-            row = dict()
+            row = {}
             for column in columns:
                 key = column[0]
                 value = self._get_value(record, key)

@@ -218,7 +218,7 @@ class Factory(object):
         if "org" in kwargs:
             args["group_ids"] = [kwargs["org"].default_group.id]
 
-        args.update(kwargs)
+        args |= kwargs
         return user_factory.create(**args)
 
     def create_admin(self, **kwargs):
@@ -233,16 +233,12 @@ class Factory(object):
                 kwargs["org"].admin_group.id,
             ]
 
-        args.update(kwargs)
+        args |= kwargs
         return user_factory.create(**args)
 
     def create_group(self, **kwargs):
-        args = {"name": "Group", "org": self.org}
-
-        args.update(kwargs)
-
-        g = redash.models.Group(**args)
-        return g
+        args = {"name": "Group", "org": self.org} | kwargs
+        return redash.models.Group(**args)
 
     def create_alert(self, **kwargs):
         args = {"user": self.user, "query_rel": self.create_query()}
@@ -257,12 +253,8 @@ class Factory(object):
         return alert_subscription_factory.create(**args)
 
     def create_data_source(self, **kwargs):
-        group = None
-        if "group" in kwargs:
-            group = kwargs.pop("group")
-        args = {"org": self.org}
-        args.update(kwargs)
-
+        group = kwargs.pop("group") if "group" in kwargs else None
+        args = {"org": self.org} | kwargs
         if group and "org" not in kwargs:
             args["org"] = group.org
 
@@ -279,64 +271,59 @@ class Factory(object):
         return data_source
 
     def create_dashboard(self, **kwargs):
-        args = {"user": self.user, "org": self.org}
-        args.update(kwargs)
+        args = {"user": self.user, "org": self.org} | kwargs
         return dashboard_factory.create(**args)
 
     def create_query(self, **kwargs):
-        args = {"user": self.user, "data_source": self.data_source, "org": self.org}
-        args.update(kwargs)
+        args = {
+            "user": self.user,
+            "data_source": self.data_source,
+            "org": self.org,
+        } | kwargs
         return query_factory.create(**args)
 
     def create_query_with_params(self, **kwargs):
-        args = {"user": self.user, "data_source": self.data_source, "org": self.org}
-        args.update(kwargs)
+        args = {
+            "user": self.user,
+            "data_source": self.data_source,
+            "org": self.org,
+        } | kwargs
         return query_with_params_factory.create(**args)
 
     def create_access_permission(self, **kwargs):
-        args = {"grantor": self.user}
-        args.update(kwargs)
+        args = {"grantor": self.user} | kwargs
         return access_permission_factory.create(**args)
 
     def create_query_result(self, **kwargs):
-        args = {"data_source": self.data_source}
-
-        args.update(kwargs)
-
+        args = {"data_source": self.data_source} | kwargs
         if "data_source" in args and "org" not in args:
             args["org"] = args["data_source"].org
 
         return query_result_factory.create(**args)
 
     def create_visualization(self, **kwargs):
-        args = {"query_rel": self.create_query()}
-        args.update(kwargs)
+        args = {"query_rel": self.create_query()} | kwargs
         return visualization_factory.create(**args)
 
     def create_visualization_with_params(self, **kwargs):
-        args = {"query_rel": self.create_query_with_params()}
-        args.update(kwargs)
+        args = {"query_rel": self.create_query_with_params()} | kwargs
         return visualization_factory.create(**args)
 
     def create_widget(self, **kwargs):
         args = {
             "dashboard": self.create_dashboard(),
             "visualization": self.create_visualization(),
-        }
-        args.update(kwargs)
+        } | kwargs
         return widget_factory.create(**args)
 
     def create_api_key(self, **kwargs):
-        args = {"org": self.org}
-        args.update(kwargs)
+        args = {"org": self.org} | kwargs
         return api_key_factory.create(**args)
 
     def create_destination(self, **kwargs):
-        args = {"org": self.org}
-        args.update(kwargs)
+        args = {"org": self.org} | kwargs
         return destination_factory.create(**args)
 
     def create_query_snippet(self, **kwargs):
-        args = {"user": self.user, "org": self.org}
-        args.update(kwargs)
+        args = {"user": self.user, "org": self.org} | kwargs
         return query_snippet_factory.create(**args)

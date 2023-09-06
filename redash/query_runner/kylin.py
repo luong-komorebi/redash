@@ -86,7 +86,7 @@ class Kylin(BaseQueryRunner):
         )
 
         if not resp.ok:
-            return {}, resp.text or str(resp.reason)
+            return {}, resp.text or resp.reason
 
         data = resp.json()
         columns = self.get_columns(data["columnMetas"])

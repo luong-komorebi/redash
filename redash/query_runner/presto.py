@@ -83,7 +83,7 @@ class Presto(BaseQueryRunner):
         results = json_loads(results)
 
         for row in results["rows"]:
-            table_name = "{}.{}".format(row["table_schema"], row["table_name"])
+            table_name = f'{row["table_schema"]}.{row["table_name"]}'
 
             if table_name not in schema:
                 schema[table_name] = {"name": table_name, "columns": []}
@@ -113,7 +113,7 @@ class Presto(BaseQueryRunner):
             columns = self.fetch_columns(column_tuples)
             rows = [
                 dict(zip(([column["name"] for column in columns]), r))
-                for i, r in enumerate(cursor.fetchall())
+                for r in cursor.fetchall()
             ]
             data = {"columns": columns, "rows": rows}
             json_data = json_dumps(data)

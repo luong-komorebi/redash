@@ -57,7 +57,7 @@ class ClickHouse(BaseSQLQueryRunner):
 
     @host.setter
     def host(self, host):
-        self._url = self._url._replace(netloc="{}:{}".format(host, self._url.port))
+        self._url = self._url._replace(netloc=f"{host}:{self._url.port}")
 
     @property
     def port(self):
@@ -65,7 +65,7 @@ class ClickHouse(BaseSQLQueryRunner):
 
     @port.setter
     def port(self, port):
-        self._url = self._url._replace(netloc="{}:{}".format(self._url.hostname, port))
+        self._url = self._url._replace(netloc=f"{self._url.hostname}:{port}")
 
     def _get_tables(self, schema):
         query = "SELECT database, table, name FROM system.columns WHERE database NOT IN ('system')"
@@ -78,7 +78,7 @@ class ClickHouse(BaseSQLQueryRunner):
         results = json_loads(results)
 
         for row in results["rows"]:
-            table_name = "{}.{}".format(row["database"], row["table"])
+            table_name = f'{row["database"]}.{row["table"]}'
 
             if table_name not in schema:
                 schema[table_name] = {"name": table_name, "columns": []}
@@ -109,12 +109,10 @@ class ClickHouse(BaseSQLQueryRunner):
             return r.json()
         except requests.RequestException as e:
             if e.response:
-                details = "({}, Status Code: {})".format(
-                    e.__class__.__name__, e.response.status_code
-                )
+                details = f"({e.__class__.__name__}, Status Code: {e.response.status_code})"
             else:
-                details = "({})".format(e.__class__.__name__)
-            raise Exception("Connection error to: {} {}.".format(url, details))
+                details = f"({e.__class__.__name__})"
+            raise Exception(f"Connection error to: {url} {details}.")
 
     @staticmethod
     def _define_column_type(column):

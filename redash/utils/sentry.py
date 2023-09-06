@@ -15,7 +15,7 @@ NON_REPORTED_EXCEPTIONS = ["QueryExecutionError"]
 def before_send(event, hint):
     if "exc_info" in hint:
         exc_type, exc_value, tb = hint["exc_info"]
-        if any([(e in str(type(exc_value))) for e in NON_REPORTED_EXCEPTIONS]):
+        if any(e in str(type(exc_value)) for e in NON_REPORTED_EXCEPTIONS):
             return None
 
     return event

@@ -92,7 +92,4 @@ def auth_ldap_user(username, password):
 
     user = conn.entries[0]
 
-    if not conn.rebind(user=user.entry_dn, password=password):
-        return None
-
-    return user
+    return None if not conn.rebind(user=user.entry_dn, password=password) else user

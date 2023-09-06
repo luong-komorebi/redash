@@ -85,7 +85,7 @@ class BaseTestCase(TestCase):
             org = self.factory.org
 
         if org is not False:
-            path = "/{}{}".format(org.slug, path)
+            path = f"/{org.slug}{path}"
 
         if user:
             authenticate_request(self.client, user)
@@ -96,29 +96,24 @@ class BaseTestCase(TestCase):
         if data and is_json:
             data = json_dumps(data)
 
-        if is_json:
-            content_type = "application/json"
-        else:
-            content_type = None
-
-        response = method_fn(
+        content_type = "application/json" if is_json else None
+        return method_fn(
             path,
             data=data,
             headers=headers,
             content_type=content_type,
             follow_redirects=follow_redirects,
         )
-        return response
 
     def get_request(self, path, org=None, headers=None):
         if org:
-            path = "/{}{}".format(org.slug, path)
+            path = f"/{org.slug}{path}"
 
         return self.client.get(path, headers=headers)
 
     def post_request(self, path, data=None, org=None, headers=None):
         if org:
-            path = "/{}{}".format(org.slug, path)
+            path = f"/{org.slug}{path}"
 
         return self.client.post(path, data=data, headers=headers)
 
@@ -139,5 +134,5 @@ class BaseTestCase(TestCase):
             self.assertEqual(
                 v,
                 actual[k],
-                "{} not equal (expected: {}, actual: {}).".format(k, v, actual[k]),
+                f"{k} not equal (expected: {v}, actual: {actual[k]}).",
             )

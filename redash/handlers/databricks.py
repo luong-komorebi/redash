@@ -22,18 +22,18 @@ def _get_databricks_data_source(data_source_id, user, org):
     )
     require_access(data_source, user, view_only)
 
-    if not data_source.type == "databricks":
+    if data_source.type != "databricks":
         abort(400, message="Resource only available for the Databricks query runner.")
 
     return data_source
 
 
 def _databases_key(data_source_id):
-    return "databricks:databases:{}".format(data_source_id)
+    return f"databricks:databases:{data_source_id}"
 
 
 def _tables_key(data_source_id, database_name):
-    return "databricks:database_tables:{}:{}".format(data_source_id, database_name)
+    return f"databricks:database_tables:{data_source_id}:{database_name}"
 
 
 def _get_databases_from_cache(data_source_id):

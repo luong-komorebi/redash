@@ -26,15 +26,12 @@ def is_empty_schedule(schedule):
     if schedule == {}:
         return True
 
-    if (
+    return (
         schedule.get("interval") is None
         and schedule.get("until") is None
         and schedule.get("day_of_week") is None
         and schedule.get("time") is None
-    ):
-        return True
-
-    return False
+    )
 
 
 def upgrade():

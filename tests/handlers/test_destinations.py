@@ -31,7 +31,6 @@ class TestDestinationListResource(BaseTestCase):
             "post", "/api/destinations", user=self.factory.create_admin(), data=data
         )
         self.assertEqual(rv.status_code, 200)
-        pass
 
     def test_post_requires_admin(self):
         data = {
@@ -62,16 +61,14 @@ class TestDestinationResource(BaseTestCase):
     def test_get(self):
         d = self.factory.create_destination()
         rv = self.make_request(
-            "get", "/api/destinations/{}".format(d.id), user=self.factory.create_admin()
+            "get", f"/api/destinations/{d.id}", user=self.factory.create_admin()
         )
         self.assertEqual(rv.status_code, 200)
 
     def test_delete(self):
         d = self.factory.create_destination()
         rv = self.make_request(
-            "delete",
-            "/api/destinations/{}".format(d.id),
-            user=self.factory.create_admin(),
+            "delete", f"/api/destinations/{d.id}", user=self.factory.create_admin()
         )
         self.assertEqual(rv.status_code, 204)
         self.assertIsNone(NotificationDestination.query.get(d.id))
@@ -87,7 +84,7 @@ class TestDestinationResource(BaseTestCase):
         with self.app.app_context():
             rv = self.make_request(
                 "post",
-                "/api/destinations/{}".format(d.id),
+                f"/api/destinations/{d.id}",
                 user=self.factory.create_admin(),
                 data=data,
             )

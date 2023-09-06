@@ -26,7 +26,7 @@ def upgrade():
     print("Updating dashboards position data:")
     dashboard_result = db.session.execute("SELECT id, layout FROM dashboards")
     for dashboard in dashboard_result:
-        print("  Updating dashboard: {}".format(dashboard["id"]))
+        print(f'  Updating dashboard: {dashboard["id"]}')
         layout = simplejson.loads(dashboard["layout"])
 
         print("    Building widgets map:")
@@ -36,18 +36,18 @@ def upgrade():
             {"dashboard_id": dashboard["id"]},
         )
         for w in widget_result:
-            print("    Widget: {}".format(w["id"]))
+            print(f'    Widget: {w["id"]}')
             widgets[w["id"]] = w
         widget_result.close()
 
         print("    Iterating over layout:")
         for row_index, row in enumerate(layout):
-            print("      Row: {} - {}".format(row_index, row))
+            print(f"      Row: {row_index} - {row}")
             if row is None:
                 continue
 
             for column_index, widget_id in enumerate(row):
-                print("      Column: {} - {}".format(column_index, widget_id))
+                print(f"      Column: {column_index} - {widget_id}")
                 widget = widgets.get(widget_id)
 
                 if widget is None:

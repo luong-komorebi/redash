@@ -38,11 +38,11 @@ def resolve_redash_type(type_in_atsd):
     :param type_in_atsd: `str`
     :return: redash type constant
     """
-    if isinstance(type_in_atsd, dict):
-        type_in_redash = types_map.get(type_in_atsd["base"])
-    else:
-        type_in_redash = types_map.get(type_in_atsd)
-    return type_in_redash
+    return (
+        types_map.get(type_in_atsd["base"])
+        if isinstance(type_in_atsd, dict)
+        else types_map.get(type_in_atsd)
+    )
 
 
 def generate_rows_and_columns(csv_response):
@@ -177,7 +177,6 @@ class AxibaseTSD(BaseQueryRunner):
         )
         metrics_list = [i.name for i in ml]
         metrics_list.append("atsd_series")
-        schema = {}
         default_columns = [
             "entity",
             "datetime",
@@ -189,11 +188,10 @@ class AxibaseTSD(BaseQueryRunner):
             "entity.tags",
             "metric.tags",
         ]
-        for table_name in metrics_list:
-            schema[table_name] = {
-                "name": "'{}'".format(table_name),
-                "columns": default_columns,
-            }
+        schema = {
+            table_name: {"name": f"'{table_name}'", "columns": default_columns}
+            for table_name in metrics_list
+        }
         values = list(schema.values())
         return values
 

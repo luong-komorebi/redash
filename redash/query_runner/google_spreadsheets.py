@@ -32,10 +32,10 @@ def _get_columns_and_column_names(row):
 
     for i, column_name in enumerate(row):
         if not column_name:
-            column_name = "column_{}".format(xl_col_to_name(i))
+            column_name = f"column_{xl_col_to_name(i)}"
 
         if column_name in column_names:
-            column_name = "{}{}".format(column_name, duplicate_counter)
+            column_name = f"{column_name}{duplicate_counter}"
             duplicate_counter += 1
 
         column_names.append(column_name)
@@ -54,7 +54,7 @@ def _value_eval_list(row_values, col_types):
             if rval is None or rval == "":
                 val = None
             elif typ == TYPE_BOOLEAN:
-                val = True if str(rval).lower() == "true" else False
+                val = str(rval).lower() == "true"
             elif typ == TYPE_DATETIME:
                 val = parser.parse(rval)
             elif typ == TYPE_FLOAT:
@@ -75,9 +75,7 @@ HEADER_INDEX = 0
 
 class WorksheetNotFoundError(Exception):
     def __init__(self, worksheet_num, worksheet_count):
-        message = "Worksheet number {} not found. Spreadsheet has {} worksheets. Note that the worksheet count is zero based.".format(
-            worksheet_num, worksheet_count
-        )
+        message = f"Worksheet number {worksheet_num} not found. Spreadsheet has {worksheet_count} worksheets. Note that the worksheet count is zero based."
         super(WorksheetNotFoundError, self).__init__(message)
 
 
@@ -106,9 +104,7 @@ def parse_worksheet(worksheet):
         dict(zip(column_names, _value_eval_list(row, column_types)))
         for row in worksheet[HEADER_INDEX + 1 :]
     ]
-    data = {"columns": columns, "rows": rows}
-
-    return data
+    return {"columns": columns, "rows": rows}
 
 
 def parse_spreadsheet(spreadsheet, worksheet_num):
@@ -129,12 +125,11 @@ def is_url_key(key):
 def parse_api_error(error):
     error_data = error.response.json()
 
-    if "error" in error_data and "message" in error_data["error"]:
-        message = error_data["error"]["message"]
-    else:
-        message = str(error)
-
-    return message
+    return (
+        error_data["error"]["message"]
+        if "error" in error_data and "message" in error_data["error"]
+        else str(error)
+    )
 
 
 class TimeoutSession(Session):
@@ -208,12 +203,7 @@ class GoogleSpreadsheet(BaseQueryRunner):
 
             return json_dumps(data), None
         except gspread.SpreadsheetNotFound:
-            return (
-                None,
-                "Spreadsheet ({}) not found. Make sure you used correct id.".format(
-                    key
-                ),
-            )
+            return None, f"Spreadsheet ({key}) not found. Make sure you used correct id."
         except APIError as e:
             return None, parse_api_error(e)
 

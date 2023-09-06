@@ -6,7 +6,16 @@ import subprocess
 
 
 def get_change_log(previous_sha):
-    args = ['git', '--no-pager', 'log', '--merges', '--grep', 'Merge pull request', '--pretty=format:"%h|%s|%b|%p"', 'master...{}'.format(previous_sha)]
+    args = [
+        'git',
+        '--no-pager',
+        'log',
+        '--merges',
+        '--grep',
+        'Merge pull request',
+        '--pretty=format:"%h|%s|%b|%p"',
+        f'master...{previous_sha}',
+    ]
     log = subprocess.check_output(args)
     changes = []
 
@@ -18,13 +27,13 @@ def get_change_log(previous_sha):
 
         try:
             pull_request = re.match("Merge pull request #(\d+)", subject).groups()[0]
-            pull_request = " #{}".format(pull_request)
+            pull_request = f" #{pull_request}"
         except Exception as ex:
             pull_request = ""
 
         author = subprocess.check_output(['git', 'log', '-1', '--pretty=format:"%an"', parents.split(' ')[-1]])[1:-1]
 
-        changes.append("{}{}: {} ({})".format(sha, pull_request, body.strip(), author))
+        changes.append(f"{sha}{pull_request}: {body.strip()} ({author})")
 
     return changes
 

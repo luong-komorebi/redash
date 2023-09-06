@@ -231,27 +231,27 @@ class TestUserListGet(BaseTestCase):
 
 class TestUserResourceGet(BaseTestCase):
     def test_returns_api_key_for_your_own_user(self):
-        rv = self.make_request("get", "/api/users/{}".format(self.factory.user.id))
+        rv = self.make_request("get", f"/api/users/{self.factory.user.id}")
         self.assertIn("api_key", rv.json)
 
     def test_returns_api_key_for_other_user_when_admin(self):
         other_user = self.factory.user
         admin = self.factory.create_admin()
 
-        rv = self.make_request("get", "/api/users/{}".format(other_user.id), user=admin)
+        rv = self.make_request("get", f"/api/users/{other_user.id}", user=admin)
         self.assertIn("api_key", rv.json)
 
     def test_doesnt_return_api_key_for_other_user(self):
         other_user = self.factory.create_user()
 
-        rv = self.make_request("get", "/api/users/{}".format(other_user.id))
+        rv = self.make_request("get", f"/api/users/{other_user.id}")
         self.assertNotIn("api_key", rv.json)
 
     def test_doesnt_return_user_from_different_org(self):
         org = self.factory.create_org()
         other_user = self.factory.create_user(org=org)
 
-        rv = self.make_request("get", "/api/users/{}".format(other_user.id))
+        rv = self.make_request("get", f"/api/users/{other_user.id}")
         self.assertEqual(rv.status_code, 404)
 
 
@@ -260,15 +260,13 @@ class TestUserResourcePost(BaseTestCase):
         other_user = self.factory.create_user()
 
         rv = self.make_request(
-            "post", "/api/users/{}".format(other_user.id), data={"name": "New Name"}
+            "post", f"/api/users/{other_user.id}", data={"name": "New Name"}
         )
         self.assertEqual(rv.status_code, 403)
 
     def test_returns_200_for_non_admin_changing_his_own(self):
         rv = self.make_request(
-            "post",
-            "/api/users/{}".format(self.factory.user.id),
-            data={"name": "New Name"},
+            "post", f"/api/users/{self.factory.user.id}", data={"name": "New Name"}
         )
         self.assertEqual(rv.status_code, 200)
 
@@ -277,7 +275,7 @@ class TestUserResourcePost(BaseTestCase):
         user = self.factory.user
         user.is_email_verified = True
         rv = self.make_request(
-            "post", "/api/users/{}".format(user.id), data={"email": "donald@trump.biz"}
+            "post", f"/api/users/{user.id}", data={"email": "donald@trump.biz"}
         )
         self.assertFalse(user.is_email_verified)
 
@@ -288,7 +286,7 @@ class TestUserResourcePost(BaseTestCase):
         user = self.factory.user
         user.is_email_verified = True
         rv = self.make_request(
-            "post", "/api/users/{}".format(user.id), data={"email": "donald@trump.biz"}
+            "post", f"/api/users/{user.id}", data={"email": "donald@trump.biz"}
         )
         self.assertTrue(user.is_email_verified)
 
@@ -297,7 +295,7 @@ class TestUserResourcePost(BaseTestCase):
 
         rv = self.make_request(
             "post",
-            "/api/users/{}".format(self.factory.user.id),
+            f"/api/users/{self.factory.user.id}",
             data={"name": "New Name"},
             user=admin,
         )
@@ -306,7 +304,7 @@ class TestUserResourcePost(BaseTestCase):
     def test_fails_password_change_without_old_password(self):
         rv = self.make_request(
             "post",
-            "/api/users/{}".format(self.factory.user.id),
+            f"/api/users/{self.factory.user.id}",
             data={"password": "new password"},
         )
         self.assertEqual(rv.status_code, 403)
@@ -314,7 +312,7 @@ class TestUserResourcePost(BaseTestCase):
     def test_fails_password_change_with_incorrect_old_password(self):
         rv = self.make_request(
             "post",
-            "/api/users/{}".format(self.factory.user.id),
+            f"/api/users/{self.factory.user.id}",
             data={"password": "new password", "old_password": "wrong"},
         )
         self.assertEqual(rv.status_code, 403)
@@ -328,7 +326,7 @@ class TestUserResourcePost(BaseTestCase):
 
         rv = self.make_request(
             "post",
-            "/api/users/{}".format(self.factory.user.id),
+            f"/api/users/{self.factory.user.id}",
             data={"password": new_password, "old_password": old_password},
         )
         self.assertEqual(rv.status_code, 200)
@@ -342,7 +340,7 @@ class TestUserResourcePost(BaseTestCase):
         test_user = {"email": "user@mailinator.com"}
         rv = self.make_request(
             "post",
-            "/api/users/{}".format(self.factory.user.id),
+            f"/api/users/{self.factory.user.id}",
             data=test_user,
             user=admin,
         )
@@ -355,26 +353,26 @@ class TestUserResourcePost(BaseTestCase):
     def test_changing_email_ends_any_other_sessions_of_current_user(self):
         with self.client as c:
             # visit profile page
-            self.make_request("get", "/api/users/{}".format(self.factory.user.id))
+            self.make_request("get", f"/api/users/{self.factory.user.id}")
             with c.session_transaction() as sess:
                 previous = sess["user_id"]
 
             # change e-mail address - this will result in a new `user_id` value inside the session
             self.make_request(
                 "post",
-                "/api/users/{}".format(self.factory.user.id),
+                f"/api/users/{self.factory.user.id}",
                 data={"email": "john@doe.com"},
             )
 
             # force the old `user_id`, simulating that the user is logged in from another browser
             with c.session_transaction() as sess:
                 sess["user_id"] = previous
-            rv = self.get_request("/api/users/{}".format(self.factory.user.id))
+            rv = self.get_request(f"/api/users/{self.factory.user.id}")
 
             self.assertEqual(rv.status_code, 404)
 
     def test_changing_email_does_not_end_current_session(self):
-        self.make_request("get", "/api/users/{}".format(self.factory.user.id))
+        self.make_request("get", f"/api/users/{self.factory.user.id}")
 
         with self.client as c:
             with c.session_transaction() as sess:
@@ -382,7 +380,7 @@ class TestUserResourcePost(BaseTestCase):
 
         self.make_request(
             "post",
-            "/api/users/{}".format(self.factory.user.id),
+            f"/api/users/{self.factory.user.id}",
             data={"email": "john@doe.com"},
         )
 
@@ -399,7 +397,7 @@ class TestUserResourcePost(BaseTestCase):
 
         rv = self.make_request(
             "post",
-            "/api/users/{}".format(other_user.id),
+            f"/api/users/{other_user.id}",
             data={"group_ids": [1, 2]},
             user=admin_user,
         )
@@ -412,7 +410,7 @@ class TestUserResourcePost(BaseTestCase):
         other_user = self.factory.create_user(is_invitation_pending=True)
 
         rv = self.make_request(
-            "delete", "/api/users/{}".format(other_user.id), user=admin_user
+            "delete", f"/api/users/{other_user.id}", user=admin_user
         )
 
         self.assertEqual(rv.status_code, 200)
@@ -425,7 +423,7 @@ class TestUserDisable(BaseTestCase):
         self.assertFalse(other_user.is_disabled)
 
         rv = self.make_request(
-            "post", "/api/users/{}/disable".format(other_user.id), user=other_user
+            "post", f"/api/users/{other_user.id}/disable", user=other_user
         )
         self.assertEqual(rv.status_code, 403)
 
@@ -439,7 +437,7 @@ class TestUserDisable(BaseTestCase):
         self.assertFalse(other_user.is_disabled)
 
         rv = self.make_request(
-            "post", "/api/users/{}/disable".format(other_user.id), user=admin_user
+            "post", f"/api/users/{other_user.id}/disable", user=admin_user
         )
         self.assertEqual(rv.status_code, 200)
 
@@ -453,7 +451,7 @@ class TestUserDisable(BaseTestCase):
         self.assertFalse(admin_user2.is_disabled)
 
         rv = self.make_request(
-            "post", "/api/users/{}/disable".format(admin_user2.id), user=admin_user1
+            "post", f"/api/users/{admin_user2.id}/disable", user=admin_user1
         )
         self.assertEqual(rv.status_code, 200)
 
@@ -466,7 +464,7 @@ class TestUserDisable(BaseTestCase):
         self.assertFalse(admin_user.is_disabled)
 
         rv = self.make_request(
-            "post", "/api/users/{}/disable".format(admin_user.id), user=admin_user
+            "post", f"/api/users/{admin_user.id}/disable", user=admin_user
         )
         self.assertEqual(rv.status_code, 403)
 
@@ -480,7 +478,7 @@ class TestUserDisable(BaseTestCase):
         self.assertTrue(other_user.is_disabled)
 
         rv = self.make_request(
-            "delete", "/api/users/{}/disable".format(other_user.id), user=admin_user
+            "delete", f"/api/users/{other_user.id}/disable", user=admin_user
         )
         self.assertEqual(rv.status_code, 200)
 
@@ -494,7 +492,7 @@ class TestUserDisable(BaseTestCase):
         self.assertTrue(admin_user2.is_disabled)
 
         rv = self.make_request(
-            "delete", "/api/users/{}/disable".format(admin_user2.id), user=admin_user1
+            "delete", f"/api/users/{admin_user2.id}/disable", user=admin_user1
         )
         self.assertEqual(rv.status_code, 200)
 
@@ -543,11 +541,11 @@ class TestUserDisable(BaseTestCase):
         # user should receive email
         user = self.factory.create_user()
         with patch(
-            "redash.handlers.users.send_password_reset_email"
-        ) as send_password_reset_email_mock:
+                "redash.handlers.users.send_password_reset_email"
+            ) as send_password_reset_email_mock:
             send_password_reset_email_mock.return_value = "reset_token"
             rv = self.make_request(
-                "post", "/api/users/{}/reset_password".format(user.id), user=admin_user
+                "post", f"/api/users/{user.id}/reset_password", user=admin_user
             )
             self.assertEqual(rv.status_code, 200)
             send_password_reset_email_mock.assert_called_with(user)
@@ -558,11 +556,11 @@ class TestUserDisable(BaseTestCase):
         self.db.session.commit()
 
         with patch(
-            "redash.handlers.users.send_password_reset_email"
-        ) as send_password_reset_email_mock:
+                "redash.handlers.users.send_password_reset_email"
+            ) as send_password_reset_email_mock:
             send_password_reset_email_mock.return_value = "reset_token"
             rv = self.make_request(
-                "post", "/api/users/{}/reset_password".format(user.id), user=admin_user
+                "post", f"/api/users/{user.id}/reset_password", user=admin_user
             )
             self.assertEqual(rv.status_code, 404)
             send_password_reset_email_mock.assert_not_called()
@@ -576,7 +574,7 @@ class TestUserRegenerateApiKey(BaseTestCase):
 
         rv = self.make_request(
             "post",
-            "/api/users/{}/regenerate_api_key".format(other_user.id),
+            f"/api/users/{other_user.id}/regenerate_api_key",
             user=admin_user,
         )
         self.assertEqual(rv.status_code, 200)
@@ -590,7 +588,7 @@ class TestUserRegenerateApiKey(BaseTestCase):
         orig_user2_api_key = user2.api_key
 
         rv = self.make_request(
-            "post", "/api/users/{}/regenerate_api_key".format(user2.id), user=user1
+            "post", f"/api/users/{user2.id}/regenerate_api_key", user=user1
         )
         self.assertEqual(rv.status_code, 403)
 
@@ -603,7 +601,7 @@ class TestUserRegenerateApiKey(BaseTestCase):
 
         rv = self.make_request(
             "post",
-            "/api/users/{}/regenerate_api_key".format(admin_user.id),
+            f"/api/users/{admin_user.id}/regenerate_api_key",
             user=admin_user,
         )
         self.assertEqual(rv.status_code, 200)
@@ -616,7 +614,7 @@ class TestUserRegenerateApiKey(BaseTestCase):
         orig_api_key = user.api_key
 
         rv = self.make_request(
-            "post", "/api/users/{}/regenerate_api_key".format(user.id), user=user
+            "post", f"/api/users/{user.id}/regenerate_api_key", user=user
         )
         self.assertEqual(rv.status_code, 200)
 

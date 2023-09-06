@@ -38,20 +38,16 @@ class HangoutsChat(BaseDestination):
 
     def notify(self, alert, query, user, new_state, app, host, options):
         try:
-            if new_state == "triggered":
-                message = '<b><font color="#c0392b">Triggered</font></b>'
-            elif new_state == "ok":
+            if new_state == "ok":
                 message = '<font color="#27ae60">Went back to normal</font>'
+            elif new_state == "triggered":
+                message = '<b><font color="#c0392b">Triggered</font></b>'
             else:
                 message = (
                     "Unable to determine status. Check Query and Alert configuration."
                 )
 
-            if alert.custom_subject:
-                title = alert.custom_subject
-            else:
-                title = alert.name
-
+            title = alert.custom_subject if alert.custom_subject else alert.name
             data = {
                 "cards": [
                     {

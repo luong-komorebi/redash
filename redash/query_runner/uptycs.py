@@ -34,18 +34,14 @@ class Uptycs(BaseSQLQueryRunner):
         }
 
     def generate_header(self, key, secret):
-        header = {}
         utcnow = datetime.datetime.utcnow()
         date = utcnow.strftime("%a, %d %b %Y %H:%M:%S GMT")
         auth_var = jwt.encode({"iss": key}, secret, algorithm="HS256")
-        authorization = "Bearer %s" % (auth_var)
-        header["date"] = date
-        header["Authorization"] = authorization
-        return header
+        authorization = f"Bearer {auth_var}"
+        return {"date": date, "Authorization": authorization}
 
     def transformed_to_redash_json(self, data):
         transformed_columns = []
-        rows = []
         # convert all type to JSON string
         # In future we correct data type  mapping later
         if "columns" in data:
@@ -53,12 +49,8 @@ class Uptycs(BaseSQLQueryRunner):
                 name = json_each["name"]
                 new_json = {"name": name, "type": "string", "friendly_name": name}
                 transformed_columns.append(new_json)
-        # Transfored items into rows.
-        if "items" in data:
-            rows = data["items"]
-
-        redash_json_data = {"columns": transformed_columns, "rows": rows}
-        return redash_json_data
+        rows = data["items"] if "items" in data else []
+        return {"columns": transformed_columns, "rows": rows}
 
     def api_call(self, sql):
         # JWT encoded header
@@ -67,10 +59,7 @@ class Uptycs(BaseSQLQueryRunner):
         )
 
         # URL form using API key file based on GLOBAL
-        url = "%s/public/api/customers/%s/query" % (
-            self.configuration.get("url"),
-            self.configuration.get("customer_id"),
-        )
+        url = f'{self.configuration.get("url")}/public/api/customers/{self.configuration.get("customer_id")}/query'
 
         # post data base sql
         post_data_json = {"query": sql}
@@ -85,8 +74,8 @@ class Uptycs(BaseSQLQueryRunner):
         if response.status_code == 200:
             response_output = json_loads(response.content)
         else:
-            error = "status_code " + str(response.status_code) + "\n"
-            error = error + "failed to connect"
+            error = f"status_code {response.status_code}" + "\n"
+            error = f"{error}failed to connect"
             json_data = {}
             return json_data, error
         # if we get right status code then call transfored_to_redash
@@ -108,10 +97,7 @@ class Uptycs(BaseSQLQueryRunner):
         header = self.generate_header(
             self.configuration.get("key"), self.configuration.get("secret")
         )
-        url = "%s/public/api/customers/%s/schema/global" % (
-            self.configuration.get("url"),
-            self.configuration.get("customer_id"),
-        )
+        url = f'{self.configuration.get("url")}/public/api/customers/{self.configuration.get("customer_id")}/schema/global'
         response = requests.get(
             url, headers=header, verify=self.configuration.get("verify_ssl", True)
         )
@@ -119,9 +105,7 @@ class Uptycs(BaseSQLQueryRunner):
         schema = json_loads(response.content)
         for each_def in schema["tables"]:
             table_name = each_def["name"]
-            columns = []
-            for col in each_def["columns"]:
-                columns.append(col["name"])
+            columns = [col["name"] for col in each_def["columns"]]
             table_json = {"name": table_name, "columns": columns}
             redash_json.append(table_json)
 

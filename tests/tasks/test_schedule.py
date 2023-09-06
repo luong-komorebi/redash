@@ -16,7 +16,7 @@ class TestSchedule(TestCase):
 
         schedule_periodic_jobs([{"func": foo, "interval": 60}])
 
-        jobs = [job for job in rq_scheduler.get_jobs()]
+        jobs = list(rq_scheduler.get_jobs())
 
         self.assertEqual(len(jobs), 1)
         self.assertTrue(jobs[0].func_name.endswith("foo"))
@@ -38,7 +38,7 @@ class TestSchedule(TestCase):
         schedule_periodic_jobs([{"func": foo, "interval": 60}])
         schedule_periodic_jobs([{"func": foo, "interval": 120}])
 
-        jobs = [job for job in rq_scheduler.get_jobs()]
+        jobs = list(rq_scheduler.get_jobs())
 
         self.assertEqual(len(jobs), 1)
         self.assertTrue(jobs[0].func_name.endswith("foo"))
@@ -56,7 +56,7 @@ class TestSchedule(TestCase):
         )
         schedule_periodic_jobs([{"func": foo, "interval": 60}])
 
-        jobs = [job for job in rq_scheduler.get_jobs()]
+        jobs = list(rq_scheduler.get_jobs())
 
         self.assertEqual(len(jobs), 1)
         self.assertTrue(jobs[0].func_name.endswith("foo"))

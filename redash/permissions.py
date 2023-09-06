@@ -63,7 +63,10 @@ class require_permissions(object):
         @functools.wraps(fn)
         def decorated(*args, **kwargs):
             if self.allow_one:
-                has_permissions = any([current_user.has_permission(permission) for permission in self.permissions])
+                has_permissions = any(
+                    current_user.has_permission(permission)
+                    for permission in self.permissions
+                )
             else:
                 has_permissions = current_user.has_permissions(self.permissions)
 

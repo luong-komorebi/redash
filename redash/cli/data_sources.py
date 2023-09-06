@@ -34,9 +34,7 @@ def list_command(organization=None):
             print("-" * 20)
 
         print(
-            "Id: {}\nName: {}\nType: {}\nOptions: {}".format(
-                ds.id, ds.name, ds.type, ds.options.to_json()
-            )
+            f"Id: {ds.id}\nName: {ds.name}\nType: {ds.type}\nOptions: {ds.options.to_json()}"
         )
 
 
@@ -46,15 +44,13 @@ def list_types():
     types = sorted(query_runners.keys())
     for query_runner_type in types:
         print(query_runner_type)
-    print("Total of {}.".format(len(types)))
+    print(f"Total of {len(types)}.")
 
 
 def validate_data_source_type(type):
     if type not in query_runners.keys():
         print(
-            'Error: the type "{}" is not supported (supported types: {}).'.format(
-                type, ", ".join(query_runners.keys())
-            )
+            f'Error: the type "{type}" is not supported (supported types: {", ".join(query_runners.keys())}).'
         )
         print("OJNK")
         exit(1)
@@ -75,18 +71,16 @@ def test(name, organization="default"):
         data_source = models.DataSource.query.filter(
             models.DataSource.name == name, models.DataSource.org == org
         ).one()
-        print(
-            "Testing connection to data source: {} (id={})".format(name, data_source.id)
-        )
+        print(f"Testing connection to data source: {name} (id={data_source.id})")
         try:
             data_source.query_runner.test_connection()
         except Exception as e:
-            print("Failure: {}".format(e))
+            print(f"Failure: {e}")
             exit(1)
         else:
             print("Success")
     except NoResultFound:
-        print("Couldn't find data source named: {}".format(name))
+        print(f"Couldn't find data source named: {name}")
         exit(1)
 
 
@@ -109,11 +103,11 @@ def new(name=None, type=None, options=None, organization="default"):
     if type is None:
         print("Select type:")
         for i, query_runner_name in enumerate(query_runners.keys()):
-            print("{}. {}".format(i + 1, query_runner_name))
+            print(f"{i + 1}. {query_runner_name}")
 
         idx = 0
         while idx < 1 or idx > len(list(query_runners.keys())):
-            idx = click.prompt("[{}-{}]".format(1, len(query_runners.keys())), type=int)
+            idx = click.prompt(f"[1-{len(query_runners.keys())}]", type=int)
 
         type = list(query_runners.keys())[idx - 1]
     else:
@@ -134,11 +128,7 @@ def new(name=None, type=None, options=None, organization="default"):
                 default_value = None
 
             prompt = prop.get("title", k.capitalize())
-            if required:
-                prompt = "{} (required)".format(prompt)
-            else:
-                prompt = "{} (optional)".format(prompt)
-
+            prompt = f"{prompt} (required)" if required else f"{prompt} (optional)"
             value = click.prompt(
                 prompt,
                 default=default_value,
@@ -157,9 +147,7 @@ def new(name=None, type=None, options=None, organization="default"):
         exit()
 
     print(
-        "Creating {} data source ({}) with options:\n{}".format(
-            type, name, options.to_json()
-        )
+        f"Creating {type} data source ({name}) with options:\n{options.to_json()}"
     )
 
     data_source = models.DataSource.create_with_group(
@@ -169,7 +157,7 @@ def new(name=None, type=None, options=None, organization="default"):
         org=models.Organization.get_by_slug(organization),
     )
     models.db.session.commit()
-    print("Id: {}".format(data_source.id))
+    print(f"Id: {data_source.id}")
 
 
 @manager.command()
@@ -187,18 +175,18 @@ def delete(name, organization="default"):
         data_source = models.DataSource.query.filter(
             models.DataSource.name == name, models.DataSource.org == org
         ).one()
-        print("Deleting data source: {} (id={})".format(name, data_source.id))
+        print(f"Deleting data source: {name} (id={data_source.id})")
         models.db.session.delete(data_source)
         models.db.session.commit()
     except NoResultFound:
-        print("Couldn't find data source named: {}".format(name))
+        print(f"Couldn't find data source named: {name}")
         exit(1)
 
 
 def update_attr(obj, attr, new_value):
     if new_value is not None:
         old_value = getattr(obj, attr)
-        print("Updating {}: {} -> {}".format(attr, old_value, new_value))
+        print(f"Updating {attr}: {old_value} -> {new_value}")
         setattr(obj, attr, new_value)
 
 
@@ -235,4 +223,4 @@ def edit(name, new_name=None, options=None, type=None, organization="default"):
         models.db.session.commit()
 
     except NoResultFound:
-        print("Couldn't find data source named: {}".format(name))
+        print(f"Couldn't find data source named: {name}")

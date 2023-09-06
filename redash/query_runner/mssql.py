@@ -86,7 +86,7 @@ class SqlServer(BaseSQLQueryRunner):
 
         for row in results["rows"]:
             if row["table_schema"] != self.configuration["db"]:
-                table_name = "{}.{}".format(row["table_schema"], row["table_name"])
+                table_name = f'{row["table_schema"]}.{row["table_name"]}'
             else:
                 table_name = row["table_name"]
 
@@ -110,7 +110,7 @@ class SqlServer(BaseSQLQueryRunner):
             charset = self.configuration.get("charset", "UTF-8")
 
             if port != 1433:
-                server = server + ":" + str(port)
+                server = f"{server}:{str(port)}"
 
             connection = pymssql.connect(
                 server=server,

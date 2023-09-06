@@ -4,7 +4,7 @@ from redash.models import db, Query, Change, ChangeTrackingMixin
 
 
 def create_object(factory):
-    obj = Query(
+    return Query(
         name="Query",
         description="",
         query_text="SELECT 1",
@@ -12,8 +12,6 @@ def create_object(factory):
         data_source=factory.data_source,
         org=factory.org,
     )
-
-    return obj
 
 
 class TestChangesProperty(BaseTestCase):
@@ -26,7 +24,7 @@ class TestChangesProperty(BaseTestCase):
 
 class TestLogChange(BaseTestCase):
     def obj(self):
-        obj = Query(
+        return Query(
             name="Query",
             description="",
             query_text="SELECT 1",
@@ -34,8 +32,6 @@ class TestLogChange(BaseTestCase):
             data_source=self.factory.data_source,
             org=self.factory.org,
         )
-
-        return obj
 
     def test_properly_logs_first_creation(self):
         obj = create_object(self.factory)

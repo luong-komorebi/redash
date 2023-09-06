@@ -80,16 +80,14 @@ class GFKBase(object):
     @property
     def object(self):
         session = object_session(self)
-        if self._object or not session:
-            return self._object
-        else:
+        if not self._object and session:
             object_class = _gfk_types[self.object_type]
             self._object = (
                 session.query(object_class)
                 .filter(object_class.id == self.object_id)
                 .first()
             )
-            return self._object
+        return self._object
 
     @object.setter
     def object(self, value):

@@ -36,7 +36,7 @@ def calculate_metrics(response):
     )
 
     statsd_client.timing(
-        "requests.{}.{}".format(endpoint, request.method.lower()), request_duration
+        f"requests.{endpoint}.{request.method.lower()}", request_duration
     )
 
     return response

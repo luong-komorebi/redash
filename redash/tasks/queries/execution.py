@@ -20,7 +20,7 @@ TIMEOUT_MESSAGE = "Query exceeded Redash query execution time limit."
 
 
 def _job_lock_id(query_hash, data_source_id):
-    return "query_hash_job:%s:%s" % (data_source_id, query_hash)
+    return f"query_hash_job:{data_source_id}:{query_hash}"
 
 
 def _unlock(query_hash, data_source_id):
@@ -41,8 +41,7 @@ def enqueue_query(
         pipe = redis_connection.pipeline()
         try:
             pipe.watch(_job_lock_id(query_hash, data_source.id))
-            job_id = pipe.get(_job_lock_id(query_hash, data_source.id))
-            if job_id:
+            if job_id := pipe.get(_job_lock_id(query_hash, data_source.id)):
                 logger.info("[%s] Found existing job: %s", query_hash, job_id)
                 job_complete = None
                 job_cancelled = None
@@ -55,7 +54,7 @@ def enqueue_query(
                     job_cancelled = job.is_cancelled
 
                     if job_complete:
-                        message = "job found is complete (%s)" % status
+                        message = f"job found is complete ({status})"
                     elif job_cancelled:
                         message = "job found has ben cancelled"
                 except NoSuchJobError:
@@ -134,19 +133,17 @@ class QueryExecutionError(Exception):
 
 
 def _resolve_user(user_id, is_api_key, query_id):
-    if user_id is not None:
-        if is_api_key:
-            api_key = user_id
-            if query_id is not None:
-                q = models.Query.get_by_id(query_id)
-            else:
-                q = models.Query.by_api_key(api_key)
-
-            return models.ApiUser(api_key, q.org, q.groups)
-        else:
-            return models.User.get_by_id(user_id)
-    else:
+    if user_id is None:
         return None
+    if not is_api_key:
+        return models.User.get_by_id(user_id)
+    api_key = user_id
+    q = (
+        models.Query.get_by_id(query_id)
+        if query_id is not None
+        else models.Query.by_api_key(api_key)
+    )
+    return models.ApiUser(api_key, q.org, q.groups)
 
 
 class QueryExecutor(object):
@@ -187,11 +184,7 @@ class QueryExecutor(object):
         try:
             data, error = query_runner.run_query(annotated_query, self.user)
         except Exception as e:
-            if isinstance(e, JobTimeoutException):
-                error = TIMEOUT_MESSAGE
-            else:
-                error = str(e)
-
+            error = TIMEOUT_MESSAGE if isinstance(e, JobTimeoutException) else str(e)
             data = None
             logger.warning("Unexpected error while running query:", exc_info=1)
 

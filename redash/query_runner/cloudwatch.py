@@ -21,16 +21,15 @@ def parse_response(results):
     rows = []
 
     for metric in results:
-        for i, value in enumerate(metric["Values"]):
-            rows.append(
-                {
-                    "id": metric["Id"],
-                    "label": metric["Label"],
-                    "timestamp": metric["Timestamps"][i],
-                    "value": value,
-                }
-            )
-
+        rows.extend(
+            {
+                "id": metric["Id"],
+                "label": metric["Label"],
+                "timestamp": metric["Timestamps"][i],
+                "value": value,
+            }
+            for i, value in enumerate(metric["Values"])
+        )
     return rows, columns
 
 
@@ -79,13 +78,12 @@ class CloudWatch(BaseQueryRunner):
         self.get_schema()
 
     def _get_client(self):
-        cloudwatch = boto3.client(
+        return boto3.client(
             "cloudwatch",
             region_name=self.configuration.get("region"),
             aws_access_key_id=self.configuration.get("aws_access_key"),
             aws_secret_access_key=self.configuration.get("aws_secret_key"),
         )
-        return cloudwatch
 
     def get_schema(self, get_stats=False):
         client = self._get_client()

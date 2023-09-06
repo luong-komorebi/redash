@@ -65,16 +65,16 @@ def _wait(conn, timeout=None):
             elif state == psycopg2.extensions.POLL_READ:
                 select.select([conn.fileno()], [], [], timeout)
             else:
-                raise psycopg2.OperationalError("poll() returned %s" % state)
+                raise psycopg2.OperationalError(f"poll() returned {state}")
         except select.error:
             raise psycopg2.OperationalError("select.error received")
 
 
 def full_table_name(schema, name):
     if "." in name:
-        name = '"{}"'.format(name)
+        name = f'"{name}"'
 
-    return "{}.{}".format(schema, name)
+    return f"{schema}.{name}"
 
 
 def build_schema(query_result, schema):
@@ -93,13 +93,14 @@ def build_schema(query_result, schema):
     )
 
     for row in query_result["rows"]:
-        if row["table_schema"] != "public":
+        if (
+            row["table_schema"] == "public"
+            and row["table_name"] in table_names
+            or row["table_schema"] != "public"
+        ):
             table_name = full_table_name(row["table_schema"], row["table_name"])
         else:
-            if row["table_name"] in table_names:
-                table_name = full_table_name(row["table_schema"], row["table_name"])
-            else:
-                table_name = row["table_name"]
+            table_name = row["table_name"]
 
         if table_name not in schema:
             schema[table_name] = {"name": table_name, "columns": []}
@@ -112,7 +113,7 @@ def build_schema(query_result, schema):
 
 
 def _create_cert_file(configuration, key, ssl_config):
-    file_key = key + "File"
+    file_key = f"{key}File"
     if file_key in configuration:
         with NamedTemporaryFile(mode="w", delete=False) as cert_file:
             cert_bytes = b64decode(configuration[file_key])
@@ -238,7 +239,7 @@ class PostgreSQL(BaseSQLQueryRunner):
 
     def _get_connection(self):
         self.ssl_config = _get_ssl_config(self.configuration)
-        connection = psycopg2.connect(
+        return psycopg2.connect(
             user=self.configuration.get("user"),
             password=self.configuration.get("password"),
             host=self.configuration.get("host"),
@@ -247,8 +248,6 @@ class PostgreSQL(BaseSQLQueryRunner):
             async_=True,
             **self.ssl_config,
         )
-
-        return connection
 
     def run_query(self, query, user):
         connection = self._get_connection()
@@ -307,7 +306,7 @@ class Redshift(PostgreSQL):
             os.path.dirname(__file__), "./files/redshift-ca-bundle.crt"
         )
 
-        connection = psycopg2.connect(
+        return psycopg2.connect(
             user=self.configuration.get("user"),
             password=self.configuration.get("password"),
             host=self.configuration.get("host"),
@@ -317,8 +316,6 @@ class Redshift(PostgreSQL):
             sslrootcert=sslrootcert_path,
             async_=True,
         )
-
-        return connection
 
     @classmethod
     def configuration_schema(cls):
@@ -365,8 +362,8 @@ class Redshift(PostgreSQL):
             query_group = self.configuration.get("adhoc_query_group")
 
         if query_group:
-            set_query_group = "set query_group to {};".format(query_group)
-            annotated = "{}\n{}".format(set_query_group, annotated)
+            set_query_group = f"set query_group to {query_group};"
+            annotated = f"{set_query_group}\n{annotated}"
 
         return annotated
 
@@ -530,7 +527,7 @@ class RedshiftIAM(Redshift):
         )
         db_user = credentials["DbUser"]
         db_password = credentials["DbPassword"]
-        connection = psycopg2.connect(
+        return psycopg2.connect(
             user=db_user,
             password=db_password,
             host=self.configuration.get("host"),
@@ -540,8 +537,6 @@ class RedshiftIAM(Redshift):
             sslrootcert=sslrootcert_path,
             async_=True,
         )
-
-        return connection
 
 
 class CockroachDB(PostgreSQL):

@@ -18,9 +18,7 @@ def set_google_apps_domains(domains):
     models.db.session.add(organization)
     models.db.session.commit()
     print(
-        "Updated list of allowed domains to: {}".format(
-            organization.google_apps_domains
-        )
+        f"Updated list of allowed domains to: {organization.google_apps_domains}"
     )
 
 
@@ -28,9 +26,7 @@ def set_google_apps_domains(domains):
 def show_google_apps_domains():
     organization = models.Organization.query.first()
     print(
-        "Current list of Google Apps domains: {}".format(
-            ", ".join(organization.google_apps_domains)
-        )
+        f'Current list of Google Apps domains: {", ".join(organization.google_apps_domains)}'
     )
 
 
@@ -42,4 +38,4 @@ def list_command():
         if i > 0:
             print("-" * 20)
 
-        print("Id: {}\nName: {}\nSlug: {}".format(org.id, org.name, org.slug))
+        print(f"Id: {org.id}\nName: {org.name}\nSlug: {org.slug}")

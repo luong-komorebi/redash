@@ -111,12 +111,8 @@ class TestLogin(BaseTestCase):
             settings.LDAP_LOGIN_ENABLED = True
             rv = self.client.get("/default/login")
             self.assertEqual(rv.status_code, 200)
-            self.assertIn(
-                "/{}/remote_user/login".format(self.factory.org.slug), rv.data.decode()
-            )
-            self.assertIn(
-                "/{}/ldap/login".format(self.factory.org.slug), rv.data.decode()
-            )
+            self.assertIn(f"/{self.factory.org.slug}/remote_user/login", rv.data.decode())
+            self.assertIn(f"/{self.factory.org.slug}/ldap/login", rv.data.decode())
         finally:
             settings.REMOTE_USER_LOGIN_ENABLED = old_remote_user_enabled
             settings.LDAP_LOGIN_ENABLED = old_ldap_login_enabled

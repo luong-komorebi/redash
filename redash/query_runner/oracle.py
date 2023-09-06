@@ -38,14 +38,11 @@ class Oracle(BaseSQLQueryRunner):
 
     @classmethod
     def get_col_type(cls, col_type, scale):
-        if col_type == cx_Oracle.NUMBER:
-            if scale is None:
-                return TYPE_INTEGER
-            if scale > 0:
-                return TYPE_FLOAT
-            return TYPE_INTEGER
-        else:
+        if col_type != cx_Oracle.NUMBER:
             return TYPES_MAP.get(col_type, None)
+        if scale is None:
+            return TYPE_INTEGER
+        return TYPE_FLOAT if scale > 0 else TYPE_INTEGER
 
     @classmethod
     def enabled(cls):
@@ -90,11 +87,11 @@ class Oracle(BaseSQLQueryRunner):
         results = json_loads(results)
 
         for row in results["rows"]:
-            if row["OWNER"] != None:
-                table_name = "{}.{}".format(row["OWNER"], row["TABLE_NAME"])
-            else:
+            if row["OWNER"] is None:
                 table_name = row["TABLE_NAME"]
 
+            else:
+                table_name = f'{row["OWNER"]}.{row["TABLE_NAME"]}'
             if table_name not in schema:
                 schema[table_name] = {"name": table_name, "columns": []}
 
@@ -166,7 +163,7 @@ class Oracle(BaseSQLQueryRunner):
                 json_data = json_dumps(data)
                 connection.commit()
         except cx_Oracle.DatabaseError as err:
-            error = "Query failed. {}.".format(str(err))
+            error = f"Query failed. {str(err)}."
             json_data = None
         except (KeyboardInterrupt, JobTimeoutException):
             connection.cancel()

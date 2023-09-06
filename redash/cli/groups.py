@@ -27,19 +27,19 @@ manager = AppGroup(help="Groups management commands.")
     " 'list_data_sources') (leave blank for default).",
 )
 def create(name, permissions=None, organization="default"):
-    print("Creating group (%s)..." % (name))
+    print(f"Creating group ({name})...")
 
     org = models.Organization.get_by_slug(organization)
 
     permissions = extract_permissions_string(permissions)
 
-    print("permissions: [%s]" % ",".join(permissions))
+    print(f'permissions: [{",".join(permissions)}]')
 
     try:
         models.db.session.add(models.Group(name=name, org=org, permissions=permissions))
         models.db.session.commit()
     except Exception as e:
-        print("Failed create group: %s" % e)
+        print(f"Failed create group: {e}")
         exit(1)
 
 
@@ -55,18 +55,17 @@ def create(name, permissions=None, organization="default"):
     " 'list_data_sources') (leave blank for default).",
 )
 def change_permissions(group_id, permissions=None):
-    print("Change permissions of group %s ..." % group_id)
+    print(f"Change permissions of group {group_id} ...")
 
     try:
         group = models.Group.query.get(group_id)
     except NoResultFound:
-        print("User [%s] not found." % group_id)
+        print(f"User [{group_id}] not found.")
         exit(1)
 
     permissions = extract_permissions_string(permissions)
     print(
-        "current permissions [%s] will be modify to [%s]"
-        % (",".join(group.permissions), ",".join(permissions))
+        f'current permissions [{",".join(group.permissions)}] will be modify to [{",".join(permissions)}]'
     )
 
     group.permissions = permissions
@@ -75,7 +74,7 @@ def change_permissions(group_id, permissions=None):
         models.db.session.add(group)
         models.db.session.commit()
     except Exception as e:
-        print("Failed change permission: %s" % e)
+        print(f"Failed change permission: {e}")
         exit(1)
 
 
@@ -108,15 +107,9 @@ def list_command(organization=None):
             print("-" * 20)
 
         print(
-            "Id: {}\nName: {}\nType: {}\nOrganization: {}\nPermissions: [{}]".format(
-                group.id,
-                group.name,
-                group.type,
-                group.org.slug,
-                ",".join(group.permissions),
-            )
+            f'Id: {group.id}\nName: {group.name}\nType: {group.type}\nOrganization: {group.org.slug}\nPermissions: [{",".join(group.permissions)}]'
         )
 
         members = models.Group.members(group.id)
         user_names = [m.name for m in members]
-        print("Users: {}".format(", ".join(user_names)))
+        print(f'Users: {", ".join(user_names)}')

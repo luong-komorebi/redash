@@ -97,13 +97,12 @@ class CloudWatchInsights(BaseQueryRunner):
         self.get_schema()
 
     def _get_client(self):
-        cloudwatch = boto3.client(
+        return boto3.client(
             "logs",
             region_name=self.configuration.get("region"),
             aws_access_key_id=self.configuration.get("aws_access_key"),
             aws_secret_access_key=self.configuration.get("aws_secret_key"),
         )
-        return cloudwatch
 
     def get_schema(self, get_stats=False):
         client = self._get_client()
@@ -140,9 +139,7 @@ class CloudWatchInsights(BaseQueryRunner):
                 break
             if result["status"] in ("Failed", "Timeout", "Unknown", "Cancelled"):
                 raise Exception(
-                    "CloudWatch Insights Query Execution Status: {}".format(
-                        result["status"]
-                    )
+                    f'CloudWatch Insights Query Execution Status: {result["status"]}'
                 )
             elif elapsed > TIMEOUT:
                 raise Exception("Request exceeded timeout.")

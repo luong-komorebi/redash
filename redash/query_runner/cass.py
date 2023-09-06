@@ -131,8 +131,8 @@ class Cassandra(BaseQueryRunner):
             "password", ""
         ):
             auth_provider = PlainTextAuthProvider(
-                username="{}".format(self.configuration.get("username", "")),
-                password="{}".format(self.configuration.get("password", "")),
+                username=f'{self.configuration.get("username", "")}',
+                password=f'{self.configuration.get("password", "")}',
             )
             connection = Cluster(
                 [self.configuration.get("host", "")],
@@ -167,8 +167,9 @@ class Cassandra(BaseQueryRunner):
         return json_data, None
 
     def _generate_cert_file(self):
-        cert_encoded_bytes = self.configuration.get("sslCertificateFile", None)
-        if cert_encoded_bytes:
+        if cert_encoded_bytes := self.configuration.get(
+            "sslCertificateFile", None
+        ):
             with NamedTemporaryFile(mode='w', delete=False) as cert_file:
                 cert_bytes = b64decode(cert_encoded_bytes)
                 cert_file.write(cert_bytes.decode("utf-8"))
@@ -180,13 +181,13 @@ class Cassandra(BaseQueryRunner):
             os.remove(cert_path)
 
     def _get_ssl_options(self, cert_path):
-        ssl_options = None
-        if self.configuration.get("useSsl", False):
-            ssl_options = generate_ssl_options_dict(
-                protocol=self.configuration["sslProtocol"],
-                cert_path=cert_path
+        return (
+            generate_ssl_options_dict(
+                protocol=self.configuration["sslProtocol"], cert_path=cert_path
             )
-        return ssl_options
+            if self.configuration.get("useSsl", False)
+            else None
+        )
 
 
 class ScyllaDB(Cassandra):

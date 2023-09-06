@@ -104,21 +104,15 @@ class AzureKusto(BaseQueryRunner):
             result_cols = response.primary_results[0].columns
             result_rows = response.primary_results[0].rows
 
-            columns = []
-            rows = []
-            for c in result_cols:
-                columns.append(
-                    {
-                        "name": c.column_name,
-                        "friendly_name": c.column_name,
-                        "type": TYPES_MAP.get(c.column_type, None),
-                    }
-                )
-
-            # rows must be [{'column1': value, 'column2': value}]
-            for row in result_rows:
-                rows.append(row.to_dict())
-
+            columns = [
+                {
+                    "name": c.column_name,
+                    "friendly_name": c.column_name,
+                    "type": TYPES_MAP.get(c.column_type, None),
+                }
+                for c in result_cols
+            ]
+            rows = [row.to_dict() for row in result_rows]
             error = None
             data = {"columns": columns, "rows": rows}
             json_data = json_dumps(data)

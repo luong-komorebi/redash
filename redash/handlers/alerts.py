@@ -142,8 +142,7 @@ class AlertSubscriptionListResource(BaseResource):
             }
         )
 
-        d = subscription.to_dict()
-        return d
+        return subscription.to_dict()
 
     def get(self, alert_id):
         alert = models.Alert.get_by_id_and_org(alert_id, self.current_org)

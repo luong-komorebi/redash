@@ -25,9 +25,7 @@ class TestDashboardListGetResource(BaseTestCase):
         rv = self.make_request("get", "/api/dashboards")
 
         assert len(rv.json["results"]) == 3
-        assert set([result["id"] for result in rv.json["results"]]) == set(
-            [d1.id, d2.id, d3.id]
-        )
+        assert {result["id"] for result in rv.json["results"]} == {d1.id, d2.id, d3.id}
 
     def test_filters_with_tags(self):
         d1 = self.factory.create_dashboard(tags=["test"])
@@ -36,7 +34,7 @@ class TestDashboardListGetResource(BaseTestCase):
 
         rv = self.make_request("get", "/api/dashboards?tags=test")
         assert len(rv.json["results"]) == 1
-        assert set([result["id"] for result in rv.json["results"]]) == set([d1.id])
+        assert {result["id"] for result in rv.json["results"]} == {d1.id}
 
     def test_search_term(self):
         d1 = self.factory.create_dashboard(name="Sales")
@@ -45,9 +43,7 @@ class TestDashboardListGetResource(BaseTestCase):
 
         rv = self.make_request("get", "/api/dashboards?q=sales")
         assert len(rv.json["results"]) == 2
-        assert set([result["id"] for result in rv.json["results"]]) == set(
-            [d1.id, d2.id]
-        )
+        assert {result["id"] for result in rv.json["results"]} == {d1.id, d2.id}
 
 
 class TestDashboardResourceGet(BaseTestCase):
@@ -83,7 +79,7 @@ class TestDashboardResourceGet(BaseTestCase):
             visualization=vis, dashboard=dashboard
         )
         widget = self.factory.create_widget(dashboard=dashboard)
-        dashboard.layout = "[[{}, {}]]".format(widget.id, restricted_widget.id)
+        dashboard.layout = f"[[{widget.id}, {restricted_widget.id}]]"
         db.session.commit()
 
         rv = self.make_request("get", "/api/dashboards/{0}".format(dashboard.id))
@@ -177,7 +173,7 @@ class TestDashboardShareResourcePost(BaseTestCase):
     def test_creates_api_key(self):
         dashboard = self.factory.create_dashboard()
 
-        res = self.make_request("post", "/api/dashboards/{}/share".format(dashboard.id))
+        res = self.make_request("post", f"/api/dashboards/{dashboard.id}/share")
         self.assertEqual(res.status_code, 200)
         self.assertEqual(res.json["api_key"], ApiKey.get_by_object(dashboard).api_key)
 
@@ -186,14 +182,14 @@ class TestDashboardShareResourcePost(BaseTestCase):
         user = self.factory.create_user()
 
         res = self.make_request(
-            "post", "/api/dashboards/{}/share".format(dashboard.id), user=user
+            "post", f"/api/dashboards/{dashboard.id}/share", user=user
         )
         self.assertEqual(res.status_code, 403)
 
         user.group_ids.append(self.factory.org.admin_group.id)
 
         res = self.make_request(
-            "post", "/api/dashboards/{}/share".format(dashboard.id), user=user
+            "post", f"/api/dashboards/{dashboard.id}/share", user=user
         )
         self.assertEqual(res.status_code, 200)
 
@@ -203,18 +199,14 @@ class TestDashboardShareResourceDelete(BaseTestCase):
         dashboard = self.factory.create_dashboard()
         ApiKey.create_for_object(dashboard, self.factory.user)
 
-        res = self.make_request(
-            "delete", "/api/dashboards/{}/share".format(dashboard.id)
-        )
+        res = self.make_request("delete", f"/api/dashboards/{dashboard.id}/share")
         self.assertEqual(res.status_code, 200)
         self.assertIsNone(ApiKey.get_by_object(dashboard))
 
     def test_ignores_when_no_api_key_exists(self):
         dashboard = self.factory.create_dashboard()
 
-        res = self.make_request(
-            "delete", "/api/dashboards/{}/share".format(dashboard.id)
-        )
+        res = self.make_request("delete", f"/api/dashboards/{dashboard.id}/share")
         self.assertEqual(res.status_code, 200)
 
     def test_requires_admin_or_owner(self):
@@ -222,13 +214,13 @@ class TestDashboardShareResourceDelete(BaseTestCase):
         user = self.factory.create_user()
 
         res = self.make_request(
-            "delete", "/api/dashboards/{}/share".format(dashboard.id), user=user
+            "delete", f"/api/dashboards/{dashboard.id}/share", user=user
         )
         self.assertEqual(res.status_code, 403)
 
         user.group_ids.append(self.factory.org.admin_group.id)
 
         res = self.make_request(
-            "delete", "/api/dashboards/{}/share".format(dashboard.id), user=user
+            "delete", f"/api/dashboards/{dashboard.id}/share", user=user
         )
         self.assertEqual(res.status_code, 200)

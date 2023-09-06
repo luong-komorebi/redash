@@ -10,22 +10,22 @@ def _exasol_type_mapper(val, data_type):
     elif data_type["type"] == "DECIMAL":
         if data_type["scale"] == 0 and data_type["precision"] < 16:
             return int(val)
-        elif data_type["scale"] == 0 and data_type["precision"] >= 16:
+        elif data_type["scale"] == 0:
             return val
         else:
             return float(val)
     elif data_type["type"] == "DATE":
-        return datetime.date(int(val[0:4]), int(val[5:7]), int(val[8:10]))
+        return datetime.date(int(val[:4]), int(val[5:7]), int(val[8:10]))
     elif data_type["type"] == "TIMESTAMP":
         return datetime.datetime(
-            int(val[0:4]),
+            int(val[:4]),
             int(val[5:7]),
-            int(val[8:10]),  # year, month, day
+            int(val[8:10]),
             int(val[11:13]),
             int(val[14:16]),
-            int(val[17:19]),  # hour, minute, second
+            int(val[17:19]),
             int(val[20:26].ljust(6, "0")) if len(val) > 20 else 0,
-        )  # microseconds (if available)
+        )
     else:
         return val
 
@@ -34,7 +34,7 @@ def _type_mapper(data_type):
     if data_type["type"] == "DECIMAL":
         if data_type["scale"] == 0 and data_type["precision"] < 16:
             return TYPE_INTEGER
-        elif data_type["scale"] == 0 and data_type["precision"] >= 16:
+        elif data_type["scale"] == 0:
             return TYPE_STRING
         else:
             return TYPE_FLOAT
@@ -74,10 +74,7 @@ class Exasol(BaseQueryRunner):
         }
 
     def _get_connection(self):
-        exahost = "%s:%s" % (
-            self.configuration.get("host", None),
-            self.configuration.get("port", 8563),
-        )
+        exahost = f'{self.configuration.get("host", None)}:{self.configuration.get("port", 8563)}'
         return pyexasol.connect(
             dsn=exahost,
             user=self.configuration.get("user", None),
@@ -127,7 +124,7 @@ class Exasol(BaseQueryRunner):
             result = {}
 
             for (schema, table_name, column) in statement:
-                table_name_with_schema = "%s.%s" % (schema, table_name)
+                table_name_with_schema = f"{schema}.{table_name}"
 
                 if table_name_with_schema not in result:
                     result[table_name_with_schema] = {

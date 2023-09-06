@@ -51,7 +51,7 @@ def grant_admin(email, organization="default"):
             models.db.session.commit()
             print("User updated.")
     except NoResultFound:
-        print("User [%s] not found." % email)
+        print(f"User [{email}] not found.")
 
 
 @manager.command()
@@ -95,7 +95,7 @@ def create(
     """
     Create user EMAIL with display name NAME.
     """
-    print("Creating user (%s, %s) in organization %s..." % (email, name, organization))
+    print(f"Creating user ({email}, {name}) in organization {organization}...")
     print("Admin: %r" % is_admin)
     print("Login with Google Auth: %r\n" % google_auth)
 
@@ -112,7 +112,7 @@ def create(
         models.db.session.add(user)
         models.db.session.commit()
     except Exception as e:
-        print("Failed creating user: %s" % e)
+        print(f"Failed creating user: {e}")
         exit(1)
 
 
@@ -144,14 +144,13 @@ def create_root(email, name, google_auth=False, password=None, organization="def
     Create root user.
     """
     print(
-        "Creating root user (%s, %s) in organization %s..."
-        % (email, name, organization)
+        f"Creating root user ({email}, {name}) in organization {organization}..."
     )
     print("Login with Google Auth: %r\n" % google_auth)
 
     user = models.User.query.filter(models.User.email == email).first()
     if user is not None:
-        print("User [%s] is already exists." % email)
+        print(f"User [{email}] is already exists.")
         exit(1)
 
     org_slug = organization
@@ -190,7 +189,7 @@ def create_root(email, name, google_auth=False, password=None, organization="def
         models.db.session.add(user)
         models.db.session.commit()
     except Exception as e:
-        print("Failed creating root user: %s" % e)
+        print(f"Failed creating root user: {e}")
         exit(1)
 
 
@@ -246,7 +245,7 @@ def password(email, password, organization=None):
         models.db.session.commit()
         print("User updated.")
     else:
-        print("User [%s] not found." % email)
+        print(f"User [{email}] not found.")
         exit(1)
 
 
@@ -280,14 +279,14 @@ def invite(email, name, inviter_email, groups, is_admin=False, organization="def
         try:
             models.db.session.commit()
             invite_user(org, user_from, user)
-            print("An invitation was sent to [%s] at [%s]." % (name, email))
+            print(f"An invitation was sent to [{name}] at [{email}].")
         except IntegrityError as e:
             if "email" in str(e):
-                print("Cannot invite. User already exists [%s]" % email)
+                print(f"Cannot invite. User already exists [{email}]")
             else:
                 print(e)
     except NoResultFound:
-        print("The inviter [%s] was not found." % inviter_email)
+        print(f"The inviter [{inviter_email}] was not found.")
 
 
 @manager.command(name="list")
@@ -309,11 +308,9 @@ def list_command(organization=None):
             print("-" * 20)
 
         print(
-            "Id: {}\nName: {}\nEmail: {}\nOrganization: {}\nActive: {}".format(
-                user.id, user.name, user.email, user.org.name, not (user.is_disabled)
-            )
+            f"Id: {user.id}\nName: {user.name}\nEmail: {user.email}\nOrganization: {user.org.name}\nActive: {not user.is_disabled}"
         )
 
         groups = models.Group.query.filter(models.Group.id.in_(user.group_ids)).all()
         group_names = [group.name for group in groups]
-        print("Groups: {}".format(", ".join(group_names)))
+        print(f'Groups: {", ".join(group_names)}')

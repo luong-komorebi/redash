@@ -11,14 +11,13 @@ SECRET_PLACEHOLDER = "--------"
 class ConfigurationContainer(Mutable):
     @classmethod
     def coerce(cls, key, value):
-        if not isinstance(value, ConfigurationContainer):
-            if isinstance(value, dict):
-                return ConfigurationContainer(value)
-
-            # this call will raise ValueError
-            return Mutable.coerce(key, value)
-        else:
+        if isinstance(value, ConfigurationContainer):
             return value
+        if isinstance(value, dict):
+            return ConfigurationContainer(value)
+
+        # this call will raise ValueError
+        return Mutable.coerce(key, value)
 
     def __init__(self, config, schema=None):
         self._config = config
@@ -71,13 +70,12 @@ class ConfigurationContainer(Mutable):
     def update(self, new_config):
         jsonschema.validate(new_config, self.schema)
 
-        config = {}
-        for k, v in new_config.items():
-            if k in self.schema.get("secret", []) and v == SECRET_PLACEHOLDER:
-                config[k] = self[k]
-            else:
-                config[k] = v
-
+        config = {
+            k: self[k]
+            if k in self.schema.get("secret", []) and v == SECRET_PLACEHOLDER
+            else v
+            for k, v in new_config.items()
+        }
         self._config = config
         self.changed()
 
@@ -99,6 +97,4 @@ class ConfigurationContainer(Mutable):
 
     @classmethod
     def from_json(cls, config_in_json):
-        if config_in_json is None:
-            return cls({})
-        return cls(json_loads(config_in_json))
+        return cls({}) if config_in_json is None else cls(json_loads(config_in_json))

@@ -9,8 +9,8 @@ from dateutil.parser import parse
 
 def _pluck_name_and_value(default_column, row):
     row = {k.lower(): v for k, v in row.items()}
-    name_column = "name" if "name" in row.keys() else default_column.lower()
-    value_column = "value" if "value" in row.keys() else default_column.lower()
+    name_column = "name" if "name" in row else default_column.lower()
+    value_column = "value" if "value" in row else default_column.lower()
 
     return {"name": row[name_column], "value": str(row[value_column])}
 
@@ -69,16 +69,14 @@ def _collect_key_names(nodes):
 
 def _collect_query_parameters(query):
     nodes = pystache.parse(query)
-    keys = _collect_key_names(nodes)
-    return keys
+    return _collect_key_names(nodes)
 
 
 def _parameter_names(parameter_values):
     names = []
     for key, value in parameter_values.items():
         if isinstance(value, dict):
-            for inner_key in value.keys():
-                names.append("{}.{}".format(key, inner_key))
+            names.extend(f"{key}.{inner_key}" for inner_key in value.keys())
         else:
             names.append(key)
 
@@ -88,12 +86,11 @@ def _parameter_names(parameter_values):
 def _is_number(string):
     if isinstance(string, Number):
         return True
-    else:
-        try:
-            float(string)
-            return True
-        except ValueError:
-            return False
+    try:
+        float(string)
+        return True
+    except ValueError:
+        return False
 
 
 def _is_date(string):
@@ -126,16 +123,16 @@ class ParameterizedQuery(object):
         self.parameters = {}
 
     def apply(self, parameters):
-        invalid_parameter_names = [
-            key for (key, value) in parameters.items() if not self._valid(key, value)
-        ]
-        if invalid_parameter_names:
+        if invalid_parameter_names := [
+            key
+            for (key, value) in parameters.items()
+            if not self._valid(key, value)
+        ]:
             raise InvalidParameterError(invalid_parameter_names)
-        else:
-            self.parameters.update(parameters)
-            self.query = mustache_render(
-                self.template, join_parameter_list_values(parameters, self.schema)
-            )
+        self.parameters.update(parameters)
+        self.query = mustache_render(
+            self.template, join_parameter_list_values(parameters, self.schema)
+        )
 
         return self
 
@@ -199,9 +196,7 @@ class ParameterizedQuery(object):
 class InvalidParameterError(Exception):
     def __init__(self, parameters):
         parameter_names = ", ".join(parameters)
-        message = "The following parameter values are incompatible with their definitions: {}".format(
-            parameter_names
-        )
+        message = f"The following parameter values are incompatible with their definitions: {parameter_names}"
         super(InvalidParameterError, self).__init__(message)
 
 

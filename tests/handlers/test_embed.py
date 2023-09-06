@@ -19,7 +19,7 @@ class TestEmbedVisualization(BaseTestCase):
 
         res = self.make_request(
             "get",
-            "/embed/query/{}/visualization/{}".format(vis.query_rel.id, vis.id),
+            f"/embed/query/{vis.query_rel.id}/visualization/{vis.id}",
             is_json=False,
         )
         self.assertEqual(res.status_code, 200)
@@ -35,7 +35,7 @@ class TestPublicDashboard(BaseTestCase):
 
         res = self.make_request(
             "get",
-            "/public/dashboards/{}".format(api_key.api_key),
+            f"/public/dashboards/{api_key.api_key}",
             user=False,
             is_json=False,
         )
@@ -48,7 +48,7 @@ class TestPublicDashboard(BaseTestCase):
         api_key = self.factory.create_api_key(object=dashboard)
 
         res = self.make_request(
-            "get", "/public/dashboards/{}".format(api_key.api_key), is_json=False
+            "get", f"/public/dashboards/{api_key.api_key}", is_json=False
         )
         self.assertEqual(res.status_code, 200)
 
@@ -63,7 +63,7 @@ class TestPublicDashboard(BaseTestCase):
         api_key = self.factory.create_api_key(object=dashboard, active=False)
         res = self.make_request(
             "get",
-            "/public/dashboards/{}".format(api_key.api_key),
+            f"/public/dashboards/{api_key.api_key}",
             user=False,
             is_json=False,
         )
@@ -82,7 +82,7 @@ class TestAPIPublicDashboard(BaseTestCase):
 
         res = self.make_request(
             "get",
-            "/api/dashboards/public/{}".format(api_key.api_key),
+            f"/api/dashboards/public/{api_key.api_key}",
             user=False,
             is_json=False,
         )
@@ -95,7 +95,7 @@ class TestAPIPublicDashboard(BaseTestCase):
         api_key = self.factory.create_api_key(object=dashboard)
 
         res = self.make_request(
-            "get", "/api/dashboards/public/{}".format(api_key.api_key), is_json=False
+            "get", f"/api/dashboards/public/{api_key.api_key}", is_json=False
         )
         self.assertEqual(res.status_code, 200)
 
@@ -110,7 +110,7 @@ class TestAPIPublicDashboard(BaseTestCase):
         api_key = self.factory.create_api_key(object=dashboard, active=False)
         res = self.make_request(
             "get",
-            "/api/dashboards/public/{}".format(api_key.api_key),
+            f"/api/dashboards/public/{api_key.api_key}",
             user=False,
             is_json=False,
         )

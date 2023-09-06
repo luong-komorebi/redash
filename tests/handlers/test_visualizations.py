@@ -24,9 +24,7 @@ class VisualizationResourceTest(BaseTestCase):
     def test_delete_visualization(self):
         visualization = self.factory.create_visualization()
         models.db.session.commit()
-        rv = self.make_request(
-            "delete", "/api/visualizations/{}".format(visualization.id)
-        )
+        rv = self.make_request("delete", f"/api/visualizations/{visualization.id}")
 
         self.assertEqual(rv.status_code, 200)
         self.assertEqual(models.Visualization.query.count(), 0)
@@ -70,7 +68,7 @@ class VisualizationResourceTest(BaseTestCase):
 
         self.make_request(
             "post",
-            "/api/queries/{}/acl".format(query.id),
+            f"/api/queries/{query.id}/acl",
             data={"access_type": "modify", "user_id": other_user.id},
         )
         rv = self.make_request(
@@ -86,7 +84,7 @@ class VisualizationResourceTest(BaseTestCase):
     def test_only_owner_collaborator_or_admin_can_edit_visualization(self):
         vis = self.factory.create_visualization()
         models.db.session.flush()
-        path = "/api/visualizations/{}".format(vis.id)
+        path = f"/api/visualizations/{vis.id}"
         data = {"name": "After Update"}
 
         other_user = self.factory.create_user()
@@ -105,7 +103,7 @@ class VisualizationResourceTest(BaseTestCase):
 
         self.make_request(
             "post",
-            "/api/queries/{}/acl".format(vis.query_id),
+            f"/api/queries/{vis.query_id}/acl",
             data={"access_type": "modify", "user_id": other_user.id},
         )
         rv = self.make_request("post", path, user=other_user, data=data)
@@ -117,7 +115,7 @@ class VisualizationResourceTest(BaseTestCase):
     def test_only_owner_collaborator_or_admin_can_delete_visualization(self):
         vis = self.factory.create_visualization()
         models.db.session.flush()
-        path = "/api/visualizations/{}".format(vis.id)
+        path = f"/api/visualizations/{vis.id}"
 
         other_user = self.factory.create_user()
         admin = self.factory.create_admin()
@@ -132,14 +130,14 @@ class VisualizationResourceTest(BaseTestCase):
 
         vis = self.factory.create_visualization()
         models.db.session.commit()
-        path = "/api/visualizations/{}".format(vis.id)
+        path = f"/api/visualizations/{vis.id}"
 
         rv = self.make_request("delete", path, user=other_user)
         self.assertEqual(rv.status_code, 403)
 
         self.make_request(
             "post",
-            "/api/queries/{}/acl".format(vis.query_id),
+            f"/api/queries/{vis.query_id}/acl",
             data={"access_type": "modify", "user_id": other_user.id},
         )
 
@@ -148,7 +146,7 @@ class VisualizationResourceTest(BaseTestCase):
 
         vis = self.factory.create_visualization()
         models.db.session.commit()
-        path = "/api/visualizations/{}".format(vis.id)
+        path = f"/api/visualizations/{vis.id}"
 
         rv = self.make_request("delete", path, user=admin_from_diff_org)
         self.assertEqual(rv.status_code, 404)
@@ -157,7 +155,7 @@ class VisualizationResourceTest(BaseTestCase):
         vis = self.factory.create_visualization()
         widget = self.factory.create_widget(visualization=vis)
 
-        rv = self.make_request("delete", "/api/visualizations/{}".format(vis.id))
+        rv = self.make_request("delete", f"/api/visualizations/{vis.id}")
 
         self.assertIsNone(
             models.Widget.query.filter(models.Widget.id == widget.id).first()

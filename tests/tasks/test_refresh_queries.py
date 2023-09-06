@@ -19,15 +19,15 @@ class TestRefreshQuery(BaseTestCase):
             options={"apply_auto_limit": True},
         )
         oq = staticmethod(lambda: [query1, query2])
-        with patch(ENQUEUE_QUERY) as add_job_mock, patch.object(
-            Query, "outdated_queries", oq
-        ):
+        with (patch(ENQUEUE_QUERY) as add_job_mock, patch.object(
+                Query, "outdated_queries", oq
+            )):
             refresh_queries()
             self.assertEqual(add_job_mock.call_count, 2)
             add_job_mock.assert_has_calls(
                 [
                     call(
-                        query1.query_text + " LIMIT 1000",
+                        f"{query1.query_text} LIMIT 1000",
                         query1.data_source,
                         query1.user_id,
                         scheduled_query=query1,
@@ -102,7 +102,7 @@ class TestRefreshQuery(BaseTestCase):
             with patch(ENQUEUE_QUERY) as add_job_mock:
                 refresh_queries()
                 add_job_mock.assert_called_with(
-                    query.query_text + " LIMIT 1000",
+                    f"{query.query_text} LIMIT 1000",
                     query.data_source,
                     query.user_id,
                     scheduled_query=query,

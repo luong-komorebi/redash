@@ -64,23 +64,17 @@ def datetime_parser(dct):
     if "$humanTime" in dct:
         return parse_human_time(dct["$humanTime"])
 
-    if "$oids" in dct:
-        return parse_oids(dct["$oids"])
-
-    return bson_object_hook(dct)
+    return parse_oids(dct["$oids"]) if "$oids" in dct else bson_object_hook(dct)
 
 
 def parse_query_json(query):
-    query_data = json_loads(query, object_hook=datetime_parser)
-    return query_data
+    return json_loads(query, object_hook=datetime_parser)
 
 
 def _get_column_by_name(columns, column_name):
-    for c in columns:
-        if "name" in c and c["name"] == column_name:
-            return c
-
-    return None
+    return next(
+        (c for c in columns if "name" in c and c["name"] == column_name), None
+    )
 
 
 def parse_results(results):
@@ -93,7 +87,7 @@ def parse_results(results):
         for key in row:
             if isinstance(row[key], dict):
                 for inner_key in row[key]:
-                    column_name = "{}.{}".format(key, inner_key)
+                    column_name = f"{key}.{inner_key}"
                     if _get_column_by_name(columns, column_name) is None:
                         columns.append(
                             {
@@ -164,19 +158,16 @@ class MongoDB(BaseQueryRunner):
 
         self.db_name = self.configuration["dbName"]
 
-        self.is_replica_set = (
-            True
-            if "replicaSetName" in self.configuration
+        self.is_replica_set = bool(
+            "replicaSetName" in self.configuration
             and self.configuration["replicaSetName"]
-            else False
         )
 
     def _get_db(self):
         kwargs = {}
         if self.is_replica_set:
             kwargs["replicaSet"] = self.configuration["replicaSetName"]
-            readPreference = self.configuration.get("readPreference")
-            if readPreference:
+            if readPreference := self.configuration.get("readPreference"):
                 kwargs["readPreference"] = readPreference
 
         if "username" in self.configuration:
@@ -204,10 +195,7 @@ class MongoDB(BaseQueryRunner):
                 columns.append(property)
 
     def _is_collection_a_view(self, db, collection_name):
-        if "viewOn" in db[collection_name].options():
-            return True
-        else:
-            return False
+        return "viewOn" in db[collection_name].options()
 
     def _get_collection_fields(self, db, collection_name):
         # Since MongoDB is a document based database and each document doesn't have
@@ -222,14 +210,14 @@ class MongoDB(BaseQueryRunner):
         collection_is_a_view = self._is_collection_a_view(db, collection_name)
         documents_sample = []
         if collection_is_a_view:
-            for d in db[collection_name].find().limit(2):
-                documents_sample.append(d)
+            documents_sample.extend(iter(db[collection_name].find().limit(2)))
         else:
-            for d in db[collection_name].find().sort([("$natural", 1)]).limit(1):
-                documents_sample.append(d)
-
-            for d in db[collection_name].find().sort([("$natural", -1)]).limit(1):
-                documents_sample.append(d)
+            documents_sample.extend(
+                iter(db[collection_name].find().sort([("$natural", 1)]).limit(1))
+            )
+            documents_sample.extend(
+                iter(db[collection_name].find().sort([("$natural", -1)]).limit(1))
+            )
         columns = []
         for d in documents_sample:
             self._merge_property_names(columns, d)
@@ -268,37 +256,29 @@ class MongoDB(BaseQueryRunner):
             collection = query_data["collection"]
 
         q = query_data.get("query", None)
-        f = None
-
         aggregate = query_data.get("aggregate", None)
         if aggregate:
             for step in aggregate:
                 if "$sort" in step:
-                    sort_list = []
-                    for sort_item in step["$sort"]:
-                        sort_list.append((sort_item["name"], sort_item["direction"]))
-
+                    sort_list = [
+                        (sort_item["name"], sort_item["direction"])
+                        for sort_item in step["$sort"]
+                    ]
                     step["$sort"] = SON(sort_list)
 
-        if "fields" in query_data:
-            f = query_data["fields"]
-
+        f = query_data["fields"] if "fields" in query_data else None
         s = None
         if "sort" in query_data and query_data["sort"]:
-            s = []
-            for field_data in query_data["sort"]:
-                s.append((field_data["name"], field_data["direction"]))
-
+            s = [
+                (field_data["name"], field_data["direction"])
+                for field_data in query_data["sort"]
+            ]
         columns = []
         rows = []
 
         cursor = None
-        if q or (not q and not aggregate):
-            if s:
-                cursor = db[collection].find(q, f).sort(s)
-            else:
-                cursor = db[collection].find(q, f)
-
+        if q or not aggregate:
+            cursor = db[collection].find(q, f).sort(s) if s else db[collection].find(q, f)
             if "skip" in query_data:
                 cursor = cursor.skip(query_data["skip"])
 
@@ -308,7 +288,7 @@ class MongoDB(BaseQueryRunner):
             if "count" in query_data:
                 cursor = cursor.count()
 
-        elif aggregate:
+        else:
             allow_disk_use = query_data.get("allowDiskUse", False)
             r = db[collection].aggregate(aggregate, allowDiskUse=allow_disk_use)
 
@@ -317,11 +297,7 @@ class MongoDB(BaseQueryRunner):
             # Older pymongo version would return a dictionary from an aggregate command.
             # The dict would contain a "result" key which would hold the cursor.
             # Newer ones return pymongo.command_cursor.CommandCursor.
-            if isinstance(r, dict):
-                cursor = r["result"]
-            else:
-                cursor = r
-
+            cursor = r["result"] if isinstance(r, dict) else r
         if "count" in query_data:
             columns.append(
                 {"name": "count", "friendly_name": "count", "type": TYPE_INTEGER}
@@ -334,8 +310,7 @@ class MongoDB(BaseQueryRunner):
         if f:
             ordered_columns = []
             for k in sorted(f, key=f.get):
-                column = _get_column_by_name(columns, k)
-                if column:
+                if column := _get_column_by_name(columns, k):
                     ordered_columns.append(column)
 
             columns = ordered_columns

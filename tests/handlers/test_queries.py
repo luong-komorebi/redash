@@ -30,11 +30,11 @@ class TestQueryResourceGet(BaseTestCase):
         query.data_source = None
         db.session.add(query)
 
-        rv = self.make_request("get", "/api/queries/{}".format(query.id))
+        rv = self.make_request("get", f"/api/queries/{query.id}")
         self.assertEqual(rv.status_code, 403)
 
         rv = self.make_request(
-            "get", "/api/queries/{}".format(query.id), user=self.factory.create_admin()
+            "get", f"/api/queries/{query.id}", user=self.factory.create_admin()
         )
         self.assertEqual(rv.status_code, 200)
 
@@ -47,12 +47,12 @@ class TestQueryResourceGet(BaseTestCase):
         db.session.add(query)
 
         rv = self.make_request(
-            "get", "/api/queries/{}".format(query.id), user=second_org_admin
+            "get", f"/api/queries/{query.id}", user=second_org_admin
         )
         self.assertEqual(rv.status_code, 404)
 
         rv = self.make_request(
-            "get", "/api/queries/{}".format(query.id), user=self.factory.create_admin()
+            "get", f"/api/queries/{query.id}", user=self.factory.create_admin()
         )
         self.assertEqual(rv.status_code, 200)
 
@@ -250,9 +250,7 @@ class TestQueryListResourceGet(BaseTestCase):
         rv = self.make_request("get", "/api/queries")
 
         assert len(rv.json["results"]) == 3
-        assert set([result["id"] for result in rv.json["results"]]) == set(
-            [q1.id, q2.id, q3.id]
-        )
+        assert {result["id"] for result in rv.json["results"]} == {q1.id, q2.id, q3.id}
 
     def test_filters_with_tags(self):
         q1 = self.factory.create_query(tags=["test"])
@@ -261,7 +259,7 @@ class TestQueryListResourceGet(BaseTestCase):
 
         rv = self.make_request("get", "/api/queries?tags=test")
         assert len(rv.json["results"]) == 1
-        assert set([result["id"] for result in rv.json["results"]]) == set([q1.id])
+        assert {result["id"] for result in rv.json["results"]} == {q1.id}
 
     def test_search_term(self):
         q1 = self.factory.create_query(name="Sales")
@@ -270,9 +268,7 @@ class TestQueryListResourceGet(BaseTestCase):
 
         rv = self.make_request("get", "/api/queries?q=sales")
         assert len(rv.json["results"]) == 2
-        assert set([result["id"] for result in rv.json["results"]]) == set(
-            [q1.id, q2.id]
-        )
+        assert {result["id"] for result in rv.json["results"]} == {q1.id, q2.id}
 
 
 class TestQueryListResourcePost(BaseTestCase):
@@ -362,9 +358,7 @@ class TestQueryArchiveResourceGet(BaseTestCase):
         rv = self.make_request("get", "/api/queries/archive")
 
         assert len(rv.json["results"]) == 2
-        assert set([result["id"] for result in rv.json["results"]]) == set(
-            [q1.id, q2.id]
-        )
+        assert {result["id"] for result in rv.json["results"]} == {q1.id, q2.id}
 
     def test_search_term(self):
         q1 = self.factory.create_query(name="Sales", is_archived=True)
@@ -373,9 +367,7 @@ class TestQueryArchiveResourceGet(BaseTestCase):
 
         rv = self.make_request("get", "/api/queries/archive?q=sales")
         assert len(rv.json["results"]) == 2
-        assert set([result["id"] for result in rv.json["results"]]) == set(
-            [q1.id, q2.id]
-        )
+        assert {result["id"] for result in rv.json["results"]} == {q1.id, q2.id}
 
 
 class QueryRefreshTest(BaseTestCase):
@@ -383,7 +375,7 @@ class QueryRefreshTest(BaseTestCase):
         super(QueryRefreshTest, self).setUp()
 
         self.query = self.factory.create_query()
-        self.path = "/api/queries/{}/refresh".format(self.query.id)
+        self.path = f"/api/queries/{self.query.id}/refresh"
 
     def test_refresh_regular_query(self):
         response = self.make_request("post", self.path)
@@ -393,14 +385,14 @@ class QueryRefreshTest(BaseTestCase):
         self.query.query_text = "SELECT {{param}}"
         db.session.add(self.query)
 
-        response = self.make_request("post", "{}?p_param=1".format(self.path))
+        response = self.make_request("post", f"{self.path}?p_param=1")
         self.assertEqual(200, response.status_code)
 
     def test_refresh_of_query_with_parameters_without_parameters(self):
         self.query.query_text = "SELECT {{param}}"
         db.session.add(self.query)
 
-        response = self.make_request("post", "{}".format(self.path))
+        response = self.make_request("post", f"{self.path}")
         self.assertEqual(400, response.status_code)
 
     def test_refresh_query_you_dont_have_access_to(self):
@@ -413,14 +405,12 @@ class QueryRefreshTest(BaseTestCase):
 
     def test_refresh_forbiden_with_query_api_key(self):
         response = self.make_request(
-            "post", "{}?api_key={}".format(self.path, self.query.api_key), user=False
+            "post", f"{self.path}?api_key={self.query.api_key}", user=False
         )
         self.assertEqual(403, response.status_code)
 
         response = self.make_request(
-            "post",
-            "{}?api_key={}".format(self.path, self.factory.user.api_key),
-            user=False,
+            "post", f"{self.path}?api_key={self.factory.user.api_key}", user=False
         )
         self.assertEqual(200, response.status_code)
 
@@ -433,9 +423,7 @@ class TestQueryRegenerateApiKey(BaseTestCase):
         orig_api_key = query.api_key
 
         rv = self.make_request(
-            "post",
-            "/api/queries/{}/regenerate_api_key".format(query.id),
-            user=other_user,
+            "post", f"/api/queries/{query.id}/regenerate_api_key", user=other_user
         )
         self.assertEqual(rv.status_code, 403)
 
@@ -449,9 +437,7 @@ class TestQueryRegenerateApiKey(BaseTestCase):
         orig_api_key = query.api_key
 
         rv = self.make_request(
-            "post",
-            "/api/queries/{}/regenerate_api_key".format(query.id),
-            user=admin_user,
+            "post", f"/api/queries/{query.id}/regenerate_api_key", user=admin_user
         )
         self.assertEqual(rv.status_code, 200)
 
@@ -465,9 +451,7 @@ class TestQueryRegenerateApiKey(BaseTestCase):
         orig_api_key = query.api_key
 
         rv = self.make_request(
-            "post",
-            "/api/queries/{}/regenerate_api_key".format(query.id),
-            user=admin_user,
+            "post", f"/api/queries/{query.id}/regenerate_api_key", user=admin_user
         )
         self.assertEqual(rv.status_code, 200)
 
@@ -480,7 +464,7 @@ class TestQueryRegenerateApiKey(BaseTestCase):
         orig_api_key = query.api_key
 
         rv = self.make_request(
-            "post", "/api/queries/{}/regenerate_api_key".format(query.id), user=user
+            "post", f"/api/queries/{query.id}/regenerate_api_key", user=user
         )
         self.assertEqual(rv.status_code, 200)
 
@@ -495,7 +479,7 @@ class TestQueryForkResourcePost(BaseTestCase):
         )
         query = self.factory.create_query(data_source=ds)
 
-        rv = self.make_request("post", "/api/queries/{}/fork".format(query.id))
+        rv = self.make_request("post", f"/api/queries/{query.id}/fork")
 
         self.assertEqual(rv.status_code, 200)
 
@@ -505,7 +489,7 @@ class TestQueryForkResourcePost(BaseTestCase):
         )
         query = self.factory.create_query(data_source=ds)
 
-        rv = self.make_request("post", "/api/queries/{}/fork".format(query.id))
+        rv = self.make_request("post", f"/api/queries/{query.id}/fork")
 
         self.assertEqual(rv.status_code, 403)
 

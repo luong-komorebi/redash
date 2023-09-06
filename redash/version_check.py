@@ -52,16 +52,10 @@ def usage_data():
         "SELECT type, count(0) FROM notification_destinations GROUP by 1"
     )
 
-    data = {name: value for (name, value) in db.session.execute(counts_query)}
-    data["data_sources"] = {
-        name: value for (name, value) in db.session.execute(data_sources_query)
-    }
-    data["visualization_types"] = {
-        name: value for (name, value) in db.session.execute(visualizations_query)
-    }
-    data["destination_types"] = {
-        name: value for (name, value) in db.session.execute(destinations_query)
-    }
+    data = dict(db.session.execute(counts_query))
+    data["data_sources"] = dict(db.session.execute(data_sources_query))
+    data["visualization_types"] = dict(db.session.execute(visualizations_query))
+    data["destination_types"] = dict(db.session.execute(destinations_query))
 
     return data
 
@@ -93,8 +87,7 @@ def run_version_check():
 
 
 def reset_new_version_status():
-    latest_version = get_latest_version()
-    if latest_version:
+    if latest_version := get_latest_version():
         _compare_and_update(latest_version)
 
 

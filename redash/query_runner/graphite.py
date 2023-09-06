@@ -60,11 +60,11 @@ class Graphite(BaseQueryRunner):
             self.auth = None
 
         self.verify = self.configuration.get("verify", True)
-        self.base_url = "%s/render?format=json&" % self.configuration["url"]
+        self.base_url = f'{self.configuration["url"]}/render?format=json&'
 
     def test_connection(self):
         r = requests.get(
-            "{}/render".format(self.configuration["url"]),
+            f'{self.configuration["url"]}/render',
             auth=self.auth,
             verify=self.verify,
         )

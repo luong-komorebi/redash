@@ -38,8 +38,7 @@ def sync_last_active_at():
     for user_id in user_ids:
         timestamp = redis_connection.hget(LAST_ACTIVE_KEY, user_id)
         active_at = dt_from_timestamp(timestamp)
-        user = User.query.filter(User.id == user_id).first()
-        if user:
+        if user := User.query.filter(User.id == user_id).first():
             user.active_at = active_at
         redis_connection.hdel(LAST_ACTIVE_KEY, user_id)
     db.session.commit()
@@ -67,13 +66,11 @@ class PermissionsCheckMixin(object):
         return self.has_permissions((permission,))
 
     def has_permissions(self, permissions):
-        has_permissions = reduce(
+        return reduce(
             lambda a, b: a and b,
             [permission in self.permissions for permission in permissions],
             True,
         )
-
-        return has_permissions
 
 
 @generic_repr("id", "name", "email")
@@ -115,7 +112,7 @@ class User(
     __table_args__ = (db.Index("users_org_id_email", "org_id", "email", unique=True),)
 
     def __str__(self):
-        return "%s (%s)" % (self.name, self.email)
+        return f"{self.name} ({self.email})"
 
     def __init__(self, *args, **kwargs):
         if kwargs.get("email") is not None:
@@ -155,12 +152,8 @@ class User(
             "active_at": self.active_at,
             "is_invitation_pending": self.is_invitation_pending,
             "is_email_verified": self.is_email_verified,
+            "auth_type": "external" if self.password_hash is None else "password",
         }
-
-        if self.password_hash is None:
-            d["auth_type"] = "external"
-        else:
-            d["auth_type"] = "password"
 
         if with_api_key:
             d["api_key"] = self.api_key
@@ -176,7 +169,7 @@ class User(
             return self._profile_image_url
 
         email_md5 = hashlib.md5(self.email.lower().encode()).hexdigest()
-        return "https://www.gravatar.com/avatar/{}?s=40&d=identicon".format(email_md5)
+        return f"https://www.gravatar.com/avatar/{email_md5}?s=40&d=identicon"
 
     @property
     def permissions(self):
@@ -216,7 +209,7 @@ class User(
 
     @classmethod
     def search(cls, base_query, term):
-        term = "%{}%".format(term)
+        term = f"%{term}%"
         search_filter = or_(cls.name.ilike(term), cls.email.like(term))
 
         return base_query.filter(search_filter)
@@ -252,7 +245,7 @@ class User(
 
     def get_id(self):
         identity = hashlib.md5(
-            "{},{}".format(self.email, self.password_hash).encode()
+            f"{self.email},{self.password_hash}".encode()
         ).hexdigest()
         return "{0}-{1}".format(self.id, identity)
 
@@ -383,7 +376,7 @@ class AccessPermission(GFKBase, db.Model):
         return q
 
     def to_dict(self):
-        d = {
+        return {
             "id": self.id,
             "object_id": self.object_id,
             "object_type": self.object_type,
@@ -391,7 +384,6 @@ class AccessPermission(GFKBase, db.Model):
             "grantor": self.grantor_id,
             "grantee": self.grantee_id,
         }
-        return d
 
 
 class AnonymousUser(AnonymousUserMixin, PermissionsCheckMixin):
@@ -411,22 +403,20 @@ class ApiUser(UserMixin, PermissionsCheckMixin):
             self.name = name
         else:
             self.id = api_key.api_key
-            self.name = "ApiKey: {}".format(api_key.id)
+            self.name = f"ApiKey: {api_key.id}"
             self.object = api_key.object
         self.group_ids = groups
         self.org = org
 
     def __repr__(self):
-        return "<{}>".format(self.name)
+        return f"<{self.name}>"
 
     def is_api_user(self):
         return True
 
     @property
     def org_id(self):
-        if not self.org:
-            return None
-        return self.org.id
+        return None if not self.org else self.org.id
 
     @property
     def permissions(self):

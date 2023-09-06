@@ -5,8 +5,11 @@ from unittest import TestCase
 from mock import MagicMock
 
 
+
+
 class DummyResults(object):
-    items = [i for i in range(25)]
+    items = list(range(25))
+
 
 
 dummy_results = DummyResults()

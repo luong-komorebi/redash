@@ -74,8 +74,7 @@ class CSV(BaseQueryRunner):
                     if issubclass(dtype.type, conversion['pandas_type']):
                         data['columns'].append({'name': label, 'friendly_name': label, 'type': conversion['redash_type']})
                         labels.append(label)
-                        func = conversion.get('to_redash')
-                        if func:
+                        if func := conversion.get('to_redash'):
                             df[label] = df[label].apply(func)
                         break
             data['rows'] = df[labels].replace({np.nan: None}).to_dict(orient='records')

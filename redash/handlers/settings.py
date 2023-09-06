@@ -15,11 +15,7 @@ def get_settings_with_defaults(defaults, org):
         if current_value is None and default_value is None:
             continue
 
-        if current_value is None:
-            settings[setting] = default_value
-        else:
-            settings[setting] = current_value
-
+        settings[setting] = default_value if current_value is None else current_value
     settings["auth_google_apps_domains"] = org.google_apps_domains
 
     return settings

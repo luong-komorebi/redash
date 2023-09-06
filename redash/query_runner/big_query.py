@@ -213,9 +213,10 @@ class BigQuery(BaseQueryRunner):
         rows = []
 
         while ("rows" in query_reply) and current_row < int(query_reply["totalRows"]):
-            for row in query_reply["rows"]:
-                rows.append(transform_row(row, query_reply["schema"]["fields"]))
-
+            rows.extend(
+                transform_row(row, query_reply["schema"]["fields"])
+                for row in query_reply["rows"]
+            )
             current_row += len(query_reply["rows"])
 
             query_result_request = {
@@ -240,13 +241,13 @@ class BigQuery(BaseQueryRunner):
             for f in query_reply["schema"]["fields"]
         ]
 
-        data = {
+        return {
             "columns": columns,
             "rows": rows,
-            "metadata": {"data_scanned": _get_total_bytes_processed_for_resp(query_reply)},
+            "metadata": {
+                "data_scanned": _get_total_bytes_processed_for_resp(query_reply)
+            },
         }
-
-        return data
 
     def _get_columns_schema(self, table_data):
         columns = []
@@ -254,14 +255,15 @@ class BigQuery(BaseQueryRunner):
             columns.extend(self._get_columns_schema_column(column))
 
         project_id = self._get_project_id()
-        table_name = table_data["id"].replace("%s:" % project_id, "")
+        table_name = table_data["id"].replace(f"{project_id}:", "")
         return {"name": table_name, "columns": columns}
 
     def _get_columns_schema_column(self, column):
         columns = []
         if column["type"] == "RECORD":
-            for field in column["fields"]:
-                columns.append("{}.{}".format(column["name"], field["name"]))
+            columns.extend(
+                f'{column["name"]}.{field["name"]}' for field in column["fields"]
+            )
         else:
             columns.append(column["name"])
 

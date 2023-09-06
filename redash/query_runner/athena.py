@@ -147,26 +147,25 @@ class Athena(BaseQueryRunner):
         return "athena"
 
     def _get_iam_credentials(self, user=None):
-        if ASSUME_ROLE:
-            role_session_name = "redash" if user is None else user.email
-            sts = boto3.client("sts")
-            creds = sts.assume_role(
-                RoleArn=self.configuration.get("iam_role"),
-                RoleSessionName=role_session_name,
-                ExternalId=self.configuration.get("external_id"),
-            )
-            return {
-                "aws_access_key_id": creds["Credentials"]["AccessKeyId"],
-                "aws_secret_access_key": creds["Credentials"]["SecretAccessKey"],
-                "aws_session_token": creds["Credentials"]["SessionToken"],
-                "region_name": self.configuration["region"],
-            }
-        else:
+        if not ASSUME_ROLE:
             return {
                 "aws_access_key_id": self.configuration.get("aws_access_key", None),
                 "aws_secret_access_key": self.configuration.get("aws_secret_key", None),
                 "region_name": self.configuration["region"],
             }
+        role_session_name = "redash" if user is None else user.email
+        sts = boto3.client("sts")
+        creds = sts.assume_role(
+            RoleArn=self.configuration.get("iam_role"),
+            RoleSessionName=role_session_name,
+            ExternalId=self.configuration.get("external_id"),
+        )
+        return {
+            "aws_access_key_id": creds["Credentials"]["AccessKeyId"],
+            "aws_secret_access_key": creds["Credentials"]["SecretAccessKey"],
+            "aws_session_token": creds["Credentials"]["SessionToken"],
+            "region_name": self.configuration["region"],
+        }
 
     def __get_schema_from_glue(self):
         client = boto3.client("glue", **self._get_iam_credentials())
@@ -179,7 +178,7 @@ class Athena(BaseQueryRunner):
             for database in databases["DatabaseList"]:
                 iterator = table_paginator.paginate(DatabaseName=database["Name"])
                 for table in iterator.search("TableList[]"):
-                    table_name = "%s.%s" % (database["Name"], table["Name"])
+                    table_name = f'{database["Name"]}.{table["Name"]}'
                     if 'StorageDescriptor' not in table:
                         logger.warning("Glue table doesn't have StorageDescriptor: %s", table_name)
                         continue
@@ -236,7 +235,7 @@ class Athena(BaseQueryRunner):
             columns = self.fetch_columns(column_tuples)
             rows = [
                 dict(zip(([c["name"] for c in columns]), r))
-                for i, r in enumerate(cursor.fetchall())
+                for r in cursor.fetchall()
             ]
             qbytes = None
             athena_query_id = None

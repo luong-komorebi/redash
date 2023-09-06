@@ -74,7 +74,7 @@ def get_saml_client(org):
                 }
             ],
         }
-        saml_settings.update(encryption_dict)
+        saml_settings |= encryption_dict
 
     if saml_type is not None and saml_type == "static":
         metadata_inline = mustache_render(
@@ -96,9 +96,7 @@ def get_saml_client(org):
     sp_config = Saml2Config()
     sp_config.load(saml_settings)
     sp_config.allow_unknown_attributes = True
-    saml_client = Saml2Client(config=sp_config)
-
-    return saml_client
+    return Saml2Client(config=sp_config)
 
 
 @blueprint.route(org_scoped_rule("/saml/callback"), methods=["POST"])
@@ -120,10 +118,7 @@ def idp_initiated(org_slug=None):
     authn_response.get_identity()
     user_info = authn_response.get_subject()
     email = user_info.text
-    name = "%s %s" % (
-        authn_response.ava["FirstName"][0],
-        authn_response.ava["LastName"][0],
-    )
+    name = f'{authn_response.ava["FirstName"][0]} {authn_response.ava["LastName"][0]}'
 
     # This is what as known as "Just In Time (JIT) provisioning".
     # What that means is that, if a user in a SAML assertion

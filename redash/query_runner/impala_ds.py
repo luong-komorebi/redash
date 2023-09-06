@@ -85,7 +85,7 @@ class Impala(BaseSQLQueryRunner):
                 ]
 
                 if schema_name != "default":
-                    table_name = "{}.{}".format(schema_name, table_name)
+                    table_name = f"{schema_name}.{table_name}"
 
                 schema_dict[table_name] = {"name": table_name, "columns": columns}
 
@@ -127,7 +127,7 @@ class Impala(BaseSQLQueryRunner):
             error = str(e)
         except RPCError as e:
             json_data = None
-            error = "Metastore Error [%s]" % str(e)
+            error = f"Metastore Error [{str(e)}]"
         except (KeyboardInterrupt, JobTimeoutException):
             connection.cancel()
             raise

@@ -44,7 +44,7 @@ class CurrentJobFilter(logging.Filter):
 
 
 def get_job_logger(name):
-    logger = logging.getLogger("rq.job." + name)
+    logger = logging.getLogger(f"rq.job.{name}")
 
     handler = logging.StreamHandler()
     handler.formatter = logging.Formatter(settings.RQ_WORKER_JOB_LOG_FORMAT)

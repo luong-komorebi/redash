@@ -12,7 +12,7 @@ class TestQueryResultsCacheHeaders(BaseTestCase):
         query = self.factory.create_query(latest_query_data=query_result)
 
         rv = self.make_request(
-            "get", "/api/queries/{}/results/{}.json".format(query.id, query_result.id)
+            "get", f"/api/queries/{query.id}/results/{query_result.id}.json"
         )
         self.assertIn("Cache-Control", rv.headers)
 
@@ -20,13 +20,13 @@ class TestQueryResultsCacheHeaders(BaseTestCase):
         query_result = self.factory.create_query_result()
         query = self.factory.create_query(latest_query_data=query_result)
 
-        rv = self.make_request("get", "/api/queries/{}/results.json".format(query.id))
+        rv = self.make_request("get", f"/api/queries/{query.id}/results.json")
         self.assertNotIn("Cache-Control", rv.headers)
 
     def test_returns_404_if_no_cached_result_found(self):
         query = self.factory.create_query(latest_query_data=None)
 
-        rv = self.make_request("get", "/api/queries/{}/results.json".format(query.id))
+        rv = self.make_request("get", f"/api/queries/{query.id}/results.json")
         self.assertEqual(404, rv.status_code)
 
 
@@ -35,7 +35,7 @@ class TestQueryResultsContentDispositionHeaders(BaseTestCase):
         query_result = self.factory.create_query_result()
         query = self.factory.create_query(name="עברית", latest_query_data=query_result)
 
-        rv = self.make_request("get", "/api/queries/{}/results.json".format(query.id))
+        rv = self.make_request("get", f"/api/queries/{query.id}/results.json")
         # This is what gunicorn will do with it
         try:
             rv.headers['Content-Disposition'].encode('ascii')
@@ -212,7 +212,7 @@ class TestQueryResultAPI(BaseTestCase):
         ds = self.factory.create_data_source(group=self.factory.create_group())
         query_result = self.factory.create_query_result(data_source=ds)
 
-        rv = self.make_request("get", "/api/query_results/{}".format(query_result.id))
+        rv = self.make_request("get", f"/api/query_results/{query_result.id}")
         self.assertEqual(rv.status_code, 403)
 
     def test_has_view_only_access_to_data_source(self):
@@ -221,7 +221,7 @@ class TestQueryResultAPI(BaseTestCase):
         )
         query_result = self.factory.create_query_result(data_source=ds)
 
-        rv = self.make_request("get", "/api/query_results/{}".format(query_result.id))
+        rv = self.make_request("get", f"/api/query_results/{query_result.id}")
         self.assertEqual(rv.status_code, 200)
 
     def test_has_full_access_to_data_source(self):
@@ -230,14 +230,14 @@ class TestQueryResultAPI(BaseTestCase):
         )
         query_result = self.factory.create_query_result(data_source=ds)
 
-        rv = self.make_request("get", "/api/query_results/{}".format(query_result.id))
+        rv = self.make_request("get", f"/api/query_results/{query_result.id}")
         self.assertEqual(rv.status_code, 200)
 
     def test_execute_new_query(self):
         query = self.factory.create_query()
 
         rv = self.make_request(
-            "post", "/api/queries/{}/results".format(query.id), data={"parameters": {}}
+            "post", f"/api/queries/{query.id}/results", data={"parameters": {}}
         )
 
         self.assertEqual(rv.status_code, 200)
@@ -247,14 +247,14 @@ class TestQueryResultAPI(BaseTestCase):
         ds = self.factory.create_data_source(group=self.factory.create_group())
         query = self.factory.create_query(data_source=ds)
 
-        rv = self.make_request("post", "/api/queries/{}/results".format(query.id))
+        rv = self.make_request("post", f"/api/queries/{query.id}/results")
         self.assertEqual(rv.status_code, 403)
         self.assertDictEqual(rv.json, error_messages["no_permission"][0])
 
     def test_execute_with_no_parameter_values(self):
         query = self.factory.create_query()
 
-        rv = self.make_request("post", "/api/queries/{}/results".format(query.id))
+        rv = self.make_request("post", f"/api/queries/{query.id}/results")
 
         self.assertEqual(rv.status_code, 200)
         self.assertIn("job", rv.json)
@@ -268,7 +268,7 @@ class TestQueryResultAPI(BaseTestCase):
         )
 
         rv = self.make_request(
-            "post", "/api/queries/{}/results".format(query.id), data={"parameters": {}}
+            "post", f"/api/queries/{query.id}/results", data={"parameters": {}}
         )
         self.assertEqual(rv.status_code, 403)
         self.assertDictEqual(rv.json, error_messages["unsafe_on_view_only"][0])
@@ -282,7 +282,7 @@ class TestQueryResultAPI(BaseTestCase):
         )
 
         rv = self.make_request(
-            "post", "/api/queries/{}/results".format(query.id), data={"parameters": {}}
+            "post", f"/api/queries/{query.id}/results", data={"parameters": {}}
         )
         self.assertEqual(rv.status_code, 200)
 
@@ -297,7 +297,7 @@ class TestQueryResultAPI(BaseTestCase):
         data = {"parameters": {"foo": "bar"}}
         rv = self.make_request(
             "post",
-            "/api/queries/{}/results?api_key={}".format(query.id, query.api_key),
+            f"/api/queries/{query.id}/results?api_key={query.api_key}",
             data=data,
         )
         self.assertEqual(rv.status_code, 403)
@@ -314,9 +314,7 @@ class TestQueryResultAPI(BaseTestCase):
 
         rv = self.make_request(
             "get",
-            "/api/queries/{}/results/{}.json?api_key={}".format(
-                query.id, query_result.id, query.api_key
-            ),
+            f"/api/queries/{query.id}/results/{query_result.id}.json?api_key={query.api_key}",
             user=False,
         )
         self.assertEqual(rv.status_code, 200)
@@ -333,7 +331,7 @@ class TestQueryResultAPI(BaseTestCase):
 
         rv = self.make_request(
             "get",
-            "/api/queries/{}/results.json?api_key={}".format(query.id, query.api_key),
+            f"/api/queries/{query.id}/results.json?api_key={query.api_key}",
             user=False,
         )
         self.assertEqual(rv.status_code, 200)
@@ -349,9 +347,7 @@ class TestQueryResultAPI(BaseTestCase):
 
         rv = self.make_request(
             "get",
-            "/api/queries/{}/results/{}.json?api_key={}".format(
-                query.id, query_result2.id, query.api_key
-            ),
+            f"/api/queries/{query.id}/results/{query_result2.id}.json?api_key={query.api_key}",
             user=False,
         )
         self.assertEqual(rv.status_code, 404)
@@ -366,7 +362,7 @@ class TestQueryResultAPI(BaseTestCase):
         )
 
         rv = self.make_request(
-            "get", "/api/queries/{}/results/{}.json".format(query.id, query_result2.id)
+            "get", f"/api/queries/{query.id}/results/{query_result2.id}.json"
         )
         self.assertEqual(rv.status_code, 403)
 
@@ -378,7 +374,7 @@ class TestQueryResultDropdownResource(BaseTestCase):
         )
         query = self.factory.create_query(data_source=ds2)
 
-        rv = self.make_request("get", "/api/queries/{}/dropdown".format(query.id))
+        rv = self.make_request("get", f"/api/queries/{query.id}/dropdown")
 
         self.assertEqual(rv.status_code, 403)
 
@@ -396,9 +392,7 @@ class TestQueryDropdownsResource(BaseTestCase):
 
         rv = self.make_request(
             "get",
-            "/api/queries/{}/dropdowns/{}".format(
-                query.id, unrelated_dropdown_query.id
-            ),
+            f"/api/queries/{query.id}/dropdowns/{unrelated_dropdown_query.id}",
         )
 
         self.assertEqual(rv.status_code, 403)
@@ -418,9 +412,7 @@ class TestQueryDropdownsResource(BaseTestCase):
 
         rv = self.make_request(
             "get",
-            "/api/queries/{}/dropdowns/{}".format(
-                query.id, unrelated_dropdown_query.id
-            ),
+            f"/api/queries/{query.id}/dropdowns/{unrelated_dropdown_query.id}",
         )
 
         self.assertEqual(rv.status_code, 200)
@@ -438,7 +430,7 @@ class TestQueryDropdownsResource(BaseTestCase):
         # user has access to query
 
         rv = self.make_request(
-            "get", "/api/queries/{}/dropdowns/{}".format(query.id, dropdown_query.id)
+            "get", f"/api/queries/{query.id}/dropdowns/{dropdown_query.id}"
         )
 
         self.assertEqual(rv.status_code, 200)
@@ -455,7 +447,7 @@ class TestQueryDropdownsResource(BaseTestCase):
         # user doesnt have access to either query
 
         rv = self.make_request(
-            "get", "/api/queries/{}/dropdowns/{}".format(query.id, dropdown_query.id)
+            "get", f"/api/queries/{query.id}/dropdowns/{dropdown_query.id}"
         )
 
         self.assertEqual(rv.status_code, 403)
@@ -468,7 +460,7 @@ class TestQueryResultExcelResponse(BaseTestCase):
 
         rv = self.make_request(
             "get",
-            "/api/queries/{}/results/{}.xlsx".format(query.id, query_result.id),
+            f"/api/queries/{query.id}/results/{query_result.id}.xlsx",
             is_json=False,
         )
         self.assertEqual(rv.status_code, 200)
@@ -483,7 +475,7 @@ class TestQueryResultExcelResponse(BaseTestCase):
 
         rv = self.make_request(
             "get",
-            "/api/queries/{}/results/{}.xlsx".format(query.id, query_result.id),
+            f"/api/queries/{query.id}/results/{query_result.id}.xlsx",
             is_json=False,
         )
         self.assertEqual(rv.status_code, 200)

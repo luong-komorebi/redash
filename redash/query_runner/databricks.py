@@ -70,7 +70,7 @@ class Databricks(BaseSQLQueryRunner):
         }
 
     def _get_cursor(self):
-        user_agent = "Redash/{} (Databricks)".format(__version__.split("-")[0])
+        user_agent = f'Redash/{__version__.split("-")[0]} (Databricks)'
         connection_string = _build_odbc_connection_string(
             Driver="Simba",
             UID="token",
@@ -138,10 +138,7 @@ class Databricks(BaseSQLQueryRunner):
 
             cursor.close()
         except pyodbc.Error as e:
-            if len(e.args) > 1:
-                error = str(e.args[1])
-            else:
-                error = str(e)
+            error = str(e.args[1]) if len(e.args) > 1 else str(e)
             json_data = None
 
         return json_data, error
@@ -168,7 +165,7 @@ class Databricks(BaseSQLQueryRunner):
         cursor.tables(schema=database_name)
 
         for table in cursor:
-            table_name = "{}.{}".format(table[1], table[2])
+            table_name = f"{table[1]}.{table[2]}"
 
             if table_name not in schema:
                 schema[table_name] = {"name": table_name, "columns": []}
@@ -183,7 +180,7 @@ class Databricks(BaseSQLQueryRunner):
         cursor.tables(schema=database_name)
 
         for table in cursor:
-            table_name = "{}.{}".format(table[1], table[2])
+            table_name = f"{table[1]}.{table[2]}"
 
             if table_name not in schema:
                 schema[table_name] = {"name": table_name, "columns": []}
@@ -191,7 +188,7 @@ class Databricks(BaseSQLQueryRunner):
         cursor.columns(schema=database_name)
 
         for column in cursor:
-            table_name = "{}.{}".format(column[1], column[2])
+            table_name = f"{column[1]}.{column[2]}"
 
             if table_name not in schema:
                 schema[table_name] = {"name": table_name, "columns": []}

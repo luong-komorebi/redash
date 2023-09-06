@@ -16,7 +16,7 @@ except ImportError:
     exit(1)
 
 REDASH_HOME = os.environ.get('REDASH_HOME', '/opt/redash')
-CURRENT_VERSION_PATH = '{}/current'.format(REDASH_HOME)
+CURRENT_VERSION_PATH = f'{REDASH_HOME}/current'
 
 
 def run(cmd, cwd=None):
@@ -27,27 +27,21 @@ def run(cmd, cwd=None):
 
 
 def confirm(question):
-    reply = str(input(question + ' (y/n): ')).lower().strip()
+    reply = str(input(f'{question} (y/n): ')).lower().strip()
 
     if reply[0] == 'y':
         return True
-    if reply[0] == 'n':
-        return False
-    else:
-        return confirm("Please use 'y' or 'n'")
+    return False if reply[0] == 'n' else confirm("Please use 'y' or 'n'")
 
 
 def version_path(version_name):
-    return "{}/{}".format(REDASH_HOME, version_name)
+    return f"{REDASH_HOME}/{version_name}"
 
 END_CODE = '\033[0m'
 
 
 def colored_string(text, color):
-    if sys.stdout.isatty():
-        return "{}{}{}".format(color, text, END_CODE)
-    else:
-        return text
+    return f"{color}{text}{END_CODE}" if sys.stdout.isatty() else text
 
 
 def h1(text):
@@ -78,22 +72,22 @@ def get_latest_release_from_ci():
     response = requests.get('https://circleci.com/api/v1.1/project/github/getredash/redash/latest/artifacts?branch=master')
 
     if response.status_code != 200:
-        exit("Failed getting releases (status code: %s)." % response.status_code)
+        exit(f"Failed getting releases (status code: {response.status_code}).")
 
     tarball_asset = filter(lambda asset: asset['url'].endswith('.tar.gz'), response.json())[0]
     filename = urllib.unquote(tarball_asset['pretty_path'].split('/')[-1])
     version = filename.replace('redash.', '').replace('.tar.gz', '')
 
-    release = Release(version, tarball_asset['url'], filename, '')
-
-    return release
+    return Release(version, tarball_asset['url'], filename, '')
 
 
 def get_release(channel):
     if channel == 'ci':
         return get_latest_release_from_ci()
 
-    response = requests.get('https://version.redash.io/api/releases?channel={}'.format(channel))
+    response = requests.get(
+        f'https://version.redash.io/api/releases?channel={channel}'
+    )
     release = response.json()[0]
 
     filename = release['download_url'].split('/')[-1]
@@ -104,7 +98,7 @@ def get_release(channel):
 
 def link_to_current(version_name):
     green("Linking to current version...")
-    run('ln -nfs {} {}'.format(version_path(version_name), CURRENT_VERSION_PATH))
+    run(f'ln -nfs {version_path(version_name)} {CURRENT_VERSION_PATH}')
 
 
 def restart_services():
@@ -120,18 +114,20 @@ def restart_services():
 
 def update_requirements(version_name):
     green("Installing new Python packages (if needed)...")
-    new_requirements_file = '{}/requirements.txt'.format(version_path(version_name))
+    new_requirements_file = f'{version_path(version_name)}/requirements.txt'
 
     install_requirements = False
 
     try:
-        run('diff {}/requirements.txt {}'.format(CURRENT_VERSION_PATH, new_requirements_file)) != 0
+        run(
+            f'diff {CURRENT_VERSION_PATH}/requirements.txt {new_requirements_file}'
+        ) != 0
     except subprocess.CalledProcessError as e:
         if e.returncode != 0:
             install_requirements = True
 
     if install_requirements:
-        run('sudo pip install -r {}'.format(new_requirements_file))
+        run(f'sudo pip install -r {new_requirements_file}')
 
 
 def apply_migrations(release):
@@ -143,8 +139,18 @@ def apply_migrations(release):
 
 
 def find_migrations(version_name):
-    current_migrations = set([f for f in os.listdir("{}/migrations".format(CURRENT_VERSION_PATH)) if fnmatch(f, '*_*.py')])
-    new_migrations = sorted([f for f in os.listdir("{}/migrations".format(version_path(version_name))) if fnmatch(f, '*_*.py')])
+    current_migrations = {
+        f
+        for f in os.listdir(f"{CURRENT_VERSION_PATH}/migrations")
+        if fnmatch(f, '*_*.py')
+    }
+    new_migrations = sorted(
+        [
+            f
+            for f in os.listdir(f"{version_path(version_name)}/migrations")
+            if fnmatch(f, '*_*.py')
+        ]
+    )
 
     return [m for m in new_migrations if m not in current_migrations]
 
@@ -160,33 +166,38 @@ def apply_migrations_pre_v1(version_name):
 
     if new_migrations and confirm("Apply new migrations? (make sure you have backup)"):
         for migration in new_migrations:
-            print("Applying {}...".format(migration))
-            run("sudo sudo -u redash PYTHONPATH=. bin/run python migrations/{}".format(migration), cwd=version_path(version_name))
+            print(f"Applying {migration}...")
+            run(
+                f"sudo sudo -u redash PYTHONPATH=. bin/run python migrations/{migration}",
+                cwd=version_path(version_name),
+            )
 
 
 def download_and_unpack(release):
     directory_name = release.version_name
 
     green("Downloading release tarball...")
-    run('sudo wget --header="Accept: application/octet-stream" -O {} {}'.format(release.filename, release.download_url))
-    green("Unpacking to: {}...".format(directory_name))
-    run('sudo mkdir -p {}'.format(directory_name))
-    run('sudo tar -C {} -xvf {}'.format(directory_name, release.filename))
+    run(
+        f'sudo wget --header="Accept: application/octet-stream" -O {release.filename} {release.download_url}'
+    )
+    green(f"Unpacking to: {directory_name}...")
+    run(f'sudo mkdir -p {directory_name}')
+    run(f'sudo tar -C {directory_name} -xvf {release.filename}')
 
     green("Changing ownership to redash...")
-    run('sudo chown redash {}'.format(directory_name))
+    run(f'sudo chown redash {directory_name}')
 
     green("Linking .env file...")
-    run('sudo ln -nfs {}/.env {}/.env'.format(REDASH_HOME, version_path(directory_name)))
+    run(f'sudo ln -nfs {REDASH_HOME}/.env {version_path(directory_name)}/.env')
 
 
 def current_version():
     real_current_path = os.path.realpath(CURRENT_VERSION_PATH).replace('.b', '+b')
-    return real_current_path.replace(REDASH_HOME + '/', '').replace('redash.', '')
+    return real_current_path.replace(f'{REDASH_HOME}/', '').replace('redash.', '')
 
 
 def verify_minimum_version():
-    green("Current version: " + current_version())
+    green(f"Current version: {current_version()}")
     if semver.compare(current_version(), '0.12.0') < 0:
         red("You need to have Redash v0.12.0 or newer to upgrade to post v1.0.0 releases.")
         green("To upgrade to v0.12.0, run the upgrade script set to the legacy channel (--channel legacy).")
@@ -204,7 +215,9 @@ def show_description_and_confirm(description):
 
 def verify_newer_version(release):
     if not release.is_newer(current_version()):
-        red("The found release is not newer than your current deployed release ({}).".format(current_version()))
+        red(
+            f"The found release is not newer than your current deployed release ({current_version()})."
+        )
         if not confirm("Continue with upgrade?"):
             red("Cancelling upgrade.")
             exit(1)
@@ -214,7 +227,7 @@ def deploy_release(channel):
     h1("Starting Redash upgrade:")
 
     release = get_release(channel)
-    green("Found version: {}".format(release.version))
+    green(f"Found version: {release.version}")
 
     if release.v1_or_newer():
         verify_minimum_version()
@@ -230,8 +243,8 @@ def deploy_release(channel):
         restart_services()
         green("Done! Enjoy.")
     except subprocess.CalledProcessError as e:
-        red("Failed running: {}".format(e.cmd))
-        red("Exit status: {}\nOutput:\n{}".format(e.returncode, e.output))
+        red(f"Failed running: {e.cmd}")
+        red(f"Exit status: {e.returncode}\nOutput:\n{e.output}")
 
 
 if __name__ == '__main__':

@@ -60,9 +60,7 @@ def parse_ym_response(response):
 
     rows = []
     for num, row in enumerate(response["data"]):
-        res = {}
-        for i, d in enumerate(row["dimensions"]):
-            res[columns[i]["name"]] = d["name"]
+        res = {columns[i]["name"]: d["name"] for i, d in enumerate(row["dimensions"])}
         for i, d in enumerate(row["metrics"]):
             res[columns[dimensions_len + i]["name"]] = d
             if num == 0 and isinstance(d, float):
@@ -122,7 +120,7 @@ class YandexMetrica(BaseSQLQueryRunner):
         token = kwargs.pop("oauth_token", self.configuration["token"])
         r = requests.get(
             "{0}/{1}".format(self.url, path),
-            headers={"Authorization": "OAuth {}".format(token)},
+            headers={"Authorization": f"OAuth {token}"},
             params=kwargs,
         )
         if r.status_code != 200:

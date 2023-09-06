@@ -18,7 +18,7 @@ class TestParameterizedQuery(TestCase):
 
     def test_finds_all_params_when_missing(self):
         query = ParameterizedQuery("SELECT {{param}} FROM {{table}}")
-        self.assertEqual(set(["param", "table"]), query.missing_params)
+        self.assertEqual({"param", "table"}, query.missing_params)
 
     def test_finds_all_params(self):
         query = ParameterizedQuery("SELECT {{param}} FROM {{table}}").apply(
@@ -36,7 +36,7 @@ class TestParameterizedQuery(TestCase):
         query = ParameterizedQuery(
             "SELECT {{param}}, {{param}} FROM {{table}} -- {{#test}} {{nested_param}} {{/test}}"
         ).apply({"param": "value", "table": "value"})
-        self.assertEqual(set(["test", "nested_param"]), query.missing_params)
+        self.assertEqual({"test", "nested_param"}, query.missing_params)
 
     def test_handles_objects(self):
         query = ParameterizedQuery(

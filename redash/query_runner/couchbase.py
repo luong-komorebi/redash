@@ -12,7 +12,7 @@ try:
     import requests
     import httplib2
 except ImportError as e:
-    logger.error("Failed to import: " + str(e))
+    logger.error(f"Failed to import: {str(e)}")
 
 
 TYPES_MAP = {
@@ -27,10 +27,9 @@ TYPES_MAP = {
 
 
 def _get_column_by_name(columns, column_name):
-    for c in columns:
-        if "name" in c and c["name"] == column_name:
-            return c
-    return None
+    return next(
+        (c for c in columns if "name" in c and c["name"] == column_name), None
+    )
 
 
 def parse_results(results):
@@ -42,7 +41,7 @@ def parse_results(results):
         for key in row:
             if isinstance(row[key], dict):
                 for inner_key in row[key]:
-                    column_name = "{}.{}".format(key, inner_key)
+                    column_name = f"{key}.{inner_key}"
                     if _get_column_by_name(columns, column_name) is None:
                         columns.append(
                             {
@@ -137,7 +136,7 @@ class Couchbase(BaseQueryRunner):
             port = self.configuration.get("port", 8095)
             params = {"statement": query}
 
-            url = "%s://%s:%s/query/service" % (protocol, host, port)
+            url = f"{protocol}://{host}:{port}/query/service"
 
             r = requests.post(url, params=params, auth=(user, password))
             r.raise_for_status()

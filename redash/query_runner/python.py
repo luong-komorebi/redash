@@ -156,9 +156,9 @@ class Python(BaseQueryRunner):
     @staticmethod
     def custom_inplacevar(op, x, y):
         if op not in IOPERATOR_TO_STR.values():
-            raise Exception("'{} is not supported inplace variable'".format(op))
+            raise Exception(f"'{op} is not supported inplace variable'")
         glb = {"x": x, "y": y}
-        exec("x" + op + "y", glb)
+        exec(f"x{op}y", glb)
         return glb["x"]
 
     @staticmethod
@@ -208,7 +208,7 @@ class Python(BaseQueryRunner):
             else:
                 data_source = models.DataSource.get_by_name(data_source_name_or_id)
         except models.NoResultFound:
-            raise Exception("Wrong data source name/id: %s." % data_source_name_or_id)
+            raise Exception(f"Wrong data source name/id: {data_source_name_or_id}.")
 
         # TODO: pass the user here...
         data, error = data_source.query_runner.run_query(query, None)
@@ -237,9 +237,8 @@ class Python(BaseQueryRunner):
             else:
                 data_source = models.DataSource.get_by_name(data_source_name_or_id)
         except models.NoResultFound:
-            raise Exception("Wrong data source name/id: %s." % data_source_name_or_id)
-        schema = data_source.query_runner.get_schema()
-        return schema
+            raise Exception(f"Wrong data source name/id: {data_source_name_or_id}.")
+        return data_source.query_runner.get_schema()
 
     @staticmethod
     def get_query_result(query_id):
@@ -251,7 +250,7 @@ class Python(BaseQueryRunner):
         try:
             query = models.Query.get_by_id(query_id)
         except models.NoResultFound:
-            raise Exception("Query id %s does not exist." % query_id)
+            raise Exception(f"Query id {query_id} does not exist.")
 
         if query.latest_query_data is None:
             raise Exception("Query does not have results yet.")
@@ -347,7 +346,7 @@ class Python(BaseQueryRunner):
             result["log"] = self._custom_print.lines
             json_data = json_dumps(result)
         except Exception as e:
-            error = str(type(e)) + " " + str(e)
+            error = f"{str(type(e))} {str(e)}"
             json_data = None
 
         return json_data, error

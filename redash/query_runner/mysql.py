@@ -113,14 +113,10 @@ class Mysql(BaseSQLQueryRunner):
             connect_timeout=60,
         )
 
-        ssl_options = self._get_ssl_parameters()
-
-        if ssl_options:
+        if ssl_options := self._get_ssl_parameters():
             params["ssl"] = ssl_options
 
-        connection = MySQLdb.connect(**params)
-
-        return connection
+        return MySQLdb.connect(**params)
 
     def _get_tables(self, schema):
         query = """
@@ -140,7 +136,7 @@ class Mysql(BaseSQLQueryRunner):
 
         for row in results["rows"]:
             if row["table_schema"] != self.configuration["db"]:
-                table_name = "{}.{}".format(row["table_schema"], row["table_name"])
+                table_name = f'{row["table_schema"]}.{row["table_name"]}'
             else:
                 table_name = row["table_name"]
 
@@ -225,8 +221,7 @@ class Mysql(BaseSQLQueryRunner):
         if self.configuration.get("use_ssl"):
             config_map = {"ssl_cacert": "ca", "ssl_cert": "cert", "ssl_key": "key"}
             for key, cfg in config_map.items():
-                val = self.configuration.get(key)
-                if val:
+                if val := self.configuration.get(key):
                     ssl_params[cfg] = val
 
         return ssl_params

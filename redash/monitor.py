@@ -19,8 +19,7 @@ def get_redis_status():
 
 
 def get_object_counts():
-    status = {}
-    status["queries_count"] = Query.query.count()
+    status = {"queries_count": Query.query.count()}
     if settings.FEATURE_SHOW_QUERY_RESULTS_COUNT:
         status["query_results_count"] = QueryResult.query.count()
         status["unused_query_results_count"] = QueryResult.unused().count()
@@ -51,7 +50,7 @@ def get_db_sizes():
 
 def get_status():
     status = {"version": __version__, "workers": []}
-    status.update(get_redis_status())
+    status |= get_redis_status()
     status.update(get_object_counts())
     status["manager"] = redis_connection.hgetall("redash:status")
     status["manager"]["queues"] = get_queues_status()
@@ -97,7 +96,7 @@ def rq_queues():
 
 
 def describe_job(job):
-    return "{} ({})".format(job.id, job.func_name.split(".").pop()) if job else None
+    return f'{job.id} ({job.func_name.split(".").pop()})' if job else None
 
 
 def rq_workers():

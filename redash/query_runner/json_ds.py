@@ -27,8 +27,7 @@ def parse_query(query):
     if query == "":
         raise QueryParseError("Query is empty.")
     try:
-        params = yaml.safe_load(query)
-        return params
+        return yaml.safe_load(query)
     except ValueError as e:
         logging.exception(e)
         error = str(e)
@@ -46,11 +45,9 @@ TYPES_MAP = {
 
 
 def _get_column_by_name(columns, column_name):
-    for c in columns:
-        if "name" in c and c["name"] == column_name:
-            return c
-
-    return None
+    return next(
+        (c for c in columns if "name" in c and c["name"] == column_name), None
+    )
 
 
 def _get_type(value):
@@ -75,7 +72,7 @@ def _apply_path_search(response, path):
         if current_path in response:
             response = response[current_path]
         else:
-            raise Exception("Couldn't find path {} in response.".format(path))
+            raise Exception(f"Couldn't find path {path} in response.")
 
     return response
 
@@ -109,7 +106,7 @@ def parse_json(data, path, fields):
         for key in row:
             if isinstance(row[key], dict):
                 for inner_key in row[key]:
-                    column_name = "{}.{}".format(key, inner_key)
+                    column_name = f"{key}.{inner_key}"
                     if fields and key not in fields and column_name not in fields:
                         continue
 
@@ -192,12 +189,10 @@ class JSON(BaseHTTPQueryRunner):
         if error is not None:
             return None, error
 
-        data = json_dumps(parse_json(response.json(), path, fields))
-
-        if data:
+        if data := json_dumps(parse_json(response.json(), path, fields)):
             return data, None
         else:
-            return None, "Got empty response from '{}'.".format(query["url"])
+            return None, f"""Got empty response from '{query["url"]}'."""
 
 
 register(JSON)

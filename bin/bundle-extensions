@@ -92,14 +92,14 @@ def load_bundles():
 
 bundles = load_bundles().items()
 if bundles:
-    print("Number of extension bundles found: {}".format(len(bundles)))
+    print(f"Number of extension bundles found: {len(bundles)}")
 else:
     print("No extension bundles found.")
 
 for bundle_name, paths in bundles:
     # Shortcut in case not paths were found for the bundle
     if not paths:
-        print('No paths found for bundle "{}".'.format(bundle_name))
+        print(f'No paths found for bundle "{bundle_name}".')
         continue
 
     # The destination for the bundle files with the entry point name as the subdirectory
@@ -108,8 +108,8 @@ for bundle_name, paths in bundles:
         destination.mkdir()
 
     # Copy the bundle directory from the module to its destination.
-    print('Copying "{}" bundle to {}:'.format(bundle_name, destination.resolve()))
+    print(f'Copying "{bundle_name}" bundle to {destination.resolve()}:')
     for src_path in paths:
         dest_path = destination / src_path.name
-        print(" - {} -> {}".format(src_path, dest_path))
+        print(f" - {src_path} -> {dest_path}")
         copy(str(src_path), str(dest_path))

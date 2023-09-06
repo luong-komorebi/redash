@@ -38,12 +38,12 @@ def _load_query(user, query_id):
     query = models.Query.get_by_id(query_id)
 
     if user.org_id != query.org_id:
-        raise PermissionError("Query id {} not found.".format(query.id))
+        raise PermissionError(f"Query id {query.id} not found.")
 
     # TODO: this duplicates some of the logic we already have in the redash.handlers.query_results.
     # We should merge it so it's consistent.
     if not has_access(query.data_source, user, view_only):
-        raise PermissionError("You do not have access to query id {}.".format(query.id))
+        raise PermissionError(f"You do not have access to query id {query.id}.")
 
     return query
 
@@ -54,13 +54,13 @@ def get_query_results(user, query_id, bring_from_cache):
         if query.latest_query_data_id is not None:
             results = query.latest_query_data.data
         else:
-            raise Exception("No cached result available for query {}.".format(query.id))
+            raise Exception(f"No cached result available for query {query.id}.")
     else:
         results, error = query.data_source.query_runner.run_query(
             query.query_text, user
         )
         if error:
-            raise Exception("Failed loading results for query id {}.".format(query.id))
+            raise Exception(f"Failed loading results for query id {query.id}.")
         else:
             results = json_loads(results)
 
@@ -84,10 +84,7 @@ def fix_column_name(name):
 
 
 def flatten(value):
-    if isinstance(value, (list, dict)):
-        return json_dumps(value)
-    else:
-        return value
+    return json_dumps(value) if isinstance(value, (list, dict)) else value
 
 
 def create_table(connection, table_name, query_results):
@@ -102,9 +99,7 @@ def create_table(connection, table_name, query_results):
         logger.debug("CREATE TABLE query: %s", create_table)
         connection.execute(create_table)
     except sqlite3.OperationalError as exc:
-        raise CreateTableError(
-            "Error creating table {}: {}".format(table_name, str(exc))
-        )
+        raise CreateTableError(f"Error creating table {table_name}: {str(exc)}")
 
     insert_template = "insert into {table_name} ({column_list}) values ({place_holders})".format(
         table_name=table_name,

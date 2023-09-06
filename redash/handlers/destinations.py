@@ -58,9 +58,7 @@ class DestinationResource(BaseResource):
             if "name" in str(e):
                 abort(
                     400,
-                    message="Alert Destination with the name {} already exists.".format(
-                        req["name"]
-                    ),
+                    message=f'Alert Destination with the name {req["name"]} already exists.',
                 )
             abort(500)
 
@@ -135,9 +133,7 @@ class DestinationListResource(BaseResource):
             if "name" in str(e):
                 abort(
                     400,
-                    message="Alert Destination with the name {} already exists.".format(
-                        req["name"]
-                    ),
+                    message=f'Alert Destination with the name {req["name"]} already exists.',
                 )
             abort(500)
 

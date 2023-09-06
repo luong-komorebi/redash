@@ -42,7 +42,7 @@ def login(org_slug=None):
         )
         return redirect(url_for("redash.index", next=next_path, org_slug=org_slug))
 
-    logger.info("Logging in " + email + " via remote user")
+    logger.info(f"Logging in {email} via remote user")
 
     user = create_and_login_user(current_org, email, email)
     if user is None:

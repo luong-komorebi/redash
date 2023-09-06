@@ -20,16 +20,17 @@ logger = logging.getLogger("authentication")
 
 
 def get_login_url(external=False, next="/"):
-    if settings.MULTI_ORG and current_org == None:
-        login_url = "/"
+    if settings.MULTI_ORG and current_org is None:
+        return "/"
     elif settings.MULTI_ORG:
-        login_url = url_for(
-            "redash.login", org_slug=current_org.slug, next=next, _external=external
+        return url_for(
+            "redash.login",
+            org_slug=current_org.slug,
+            next=next,
+            _external=external,
         )
     else:
-        login_url = url_for("redash.login", next=next, _external=external)
-
-    return login_url
+        return url_for("redash.login", next=next, _external=external)
 
 
 def sign(key, path, expires):
@@ -44,8 +45,7 @@ def sign(key, path, expires):
 
 @login_manager.user_loader
 def load_user(user_id_with_identity):
-    user = api_key_load_user_from_request(request)
-    if user:
+    if user := api_key_load_user_from_request(request):
         return user
 
     org = current_org._get_current_object()
@@ -69,9 +69,7 @@ def request_loader(request):
         user = api_key_load_user_from_request(request)
     else:
         logger.warning(
-            "Unknown authentication type ({}). Using default (HMAC).".format(
-                settings.AUTH_TYPE
-            )
+            f"Unknown authentication type ({settings.AUTH_TYPE}). Using default (HMAC)."
         )
         user = hmac_load_user_from_request(request)
 
@@ -104,7 +102,7 @@ def hmac_load_user_from_request(request):
                     query.api_key,
                     query.org,
                     list(query.groups.keys()),
-                    name="ApiKey: Query {}".format(query.id),
+                    name=f"ApiKey: Query {query.id}",
                 )
 
     return None
@@ -134,7 +132,7 @@ def get_user_from_api_key(api_key, query_id):
                         api_key,
                         query.org,
                         list(query.groups.keys()),
-                        name="ApiKey: Query {}".format(query.id),
+                        name=f"ApiKey: Query {query.id}",
                     )
 
     return user
@@ -159,11 +157,9 @@ def api_key_load_user_from_request(request):
     api_key = get_api_key_from_request(request)
     if request.view_args is not None:
         query_id = request.view_args.get("query_id", None)
-        user = get_user_from_api_key(api_key, query_id)
+        return get_user_from_api_key(api_key, query_id)
     else:
-        user = None
-
-    return user
+        return None
 
 
 def jwt_token_load_user_from_request(request):
@@ -231,7 +227,7 @@ def redirect_to_login():
 def logout_and_redirect_to_index():
     logout_user()
 
-    if settings.MULTI_ORG and current_org == None:
+    if settings.MULTI_ORG and current_org is None:
         index_url = "/"
     elif settings.MULTI_ORG:
         index_url = url_for("redash.index", org_slug=current_org.slug, _external=False)

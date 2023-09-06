@@ -82,9 +82,9 @@ class CorporateMemoryQueryRunner(BaseQueryRunner):
             if value is not None:
                 environ[key] = str(value)
                 if key in self.KNOWN_SECRET_KEYS:
-                    logger.info("{} set by config".format(key))
+                    logger.info(f"{key} set by config")
                 else:
-                    logger.info("{} set by config to {}".format(key, environ[key]))
+                    logger.info(f"{key} set by config to {environ[key]}")
 
     @staticmethod
     def _transform_sparql_results(results):
@@ -107,7 +107,7 @@ class CorporateMemoryQueryRunner(BaseQueryRunner):
             values and, in case they are all the same, choose something better than
             just string.
         """
-        logger.info("results are: {}".format(results))
+        logger.info(f"results are: {results}")
         # Not sure why we do not use the json package here but all other
         # query runner do it the same way :-)
         sparql_results = json_loads(results)
@@ -122,10 +122,10 @@ class CorporateMemoryQueryRunner(BaseQueryRunner):
                     # not bound SPARQL variables are set as empty strings
                     row[var] = ""
             rows.append(row)
-        # transform all vars to redash columns
-        columns = []
-        for var in sparql_results["head"]["vars"]:
-            columns.append({"name": var, "friendly_name": var, "type": "string"})
+        columns = [
+            {"name": var, "friendly_name": var, "type": "string"}
+            for var in sparql_results["head"]["vars"]
+        ]
         # Not sure why we do not use the json package here but all other
         # query runner do it the same way :-)
         return json_dumps({"columns": columns, "rows": rows})
@@ -145,21 +145,21 @@ class CorporateMemoryQueryRunner(BaseQueryRunner):
     def run_query(self, query, user):
         """send a sparql query to corporate memory"""
         query_text = query
-        logger.info("about to execute query (user='{}'): {}".format(user, query_text))
+        logger.info(f"about to execute query (user='{user}'): {query_text}")
         query = SparqlQuery(query_text)
         query_type = query.get_query_type()
         # type of None means, there is an error in the query
         # so execution is at least tried on endpoint
         if query_type not in ["SELECT", None]:
             raise ValueError(
-                "Queries of type {} can not be processed by redash.".format(query_type)
+                f"Queries of type {query_type} can not be processed by redash."
             )
 
         self._setup_environment()
         try:
             data = self._transform_sparql_results(query.get_results())
         except Exception as error:
-            logger.info("Error: {}".format(error))
+            logger.info(f"Error: {error}")
             try:
                 # try to load Problem Details for HTTP API JSON
                 details = json.loads(error.response.text)
@@ -233,10 +233,11 @@ class CorporateMemoryQueryRunner(BaseQueryRunner):
 
     def get_schema(self, get_stats=False):
         """Get the schema structure (prefixes, graphs)."""
-        schema = dict()
-        schema["1"] = {
-            "name": "-> Common Prefixes <-",
-            "columns": self._get_common_prefixes_schema(),
+        schema = {
+            "1": {
+                "name": "-> Common Prefixes <-",
+                "columns": self._get_common_prefixes_schema(),
+            }
         }
         schema["2"] = {"name": "-> Graphs <-", "columns": self._get_graphs_schema()}
         # schema.update(self._get_query_schema())
@@ -246,15 +247,12 @@ class CorporateMemoryQueryRunner(BaseQueryRunner):
     def _get_graphs_schema(self):
         """Get a list of readable graph FROM clause strings."""
         self._setup_environment()
-        graphs = []
-        for graph in get_graphs_list():
-            graphs.append("FROM <{}>".format(graph["iri"]))
-        return graphs
+        return [f'FROM <{graph["iri"]}>' for graph in get_graphs_list()]
 
     @staticmethod
     def _get_common_prefixes_schema():
         """Get a list of SPARQL prefix declarations."""
-        common_prefixes = [
+        return [
             "PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>",
             "PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>",
             "PREFIX owl: <http://www.w3.org/2002/07/owl#>",
@@ -262,7 +260,6 @@ class CorporateMemoryQueryRunner(BaseQueryRunner):
             "PREFIX dct: <http://purl.org/dc/terms/>",
             "PREFIX skos: <http://www.w3.org/2004/02/skos/core#>",
         ]
-        return common_prefixes
 
 
 register(CorporateMemoryQueryRunner)

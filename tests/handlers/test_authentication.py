@@ -12,7 +12,7 @@ class TestResetPassword(BaseTestCase):
     def test_shows_reset_password_form(self):
         user = self.factory.create_user(is_invitation_pending=False)
         token = invite_token(user)
-        response = self.get_request("/reset/{}".format(token), org=self.factory.org)
+        response = self.get_request(f"/reset/{token}", org=self.factory.org)
         self.assertEqual(response.status_code, 200)
 
 
@@ -23,7 +23,7 @@ class TestInvite(BaseTestCase):
             patched_time.return_value = time.time() - (7 * 24 * 3600) - 10
             token = invite_token(self.factory.user)
 
-        response = self.get_request("/invite/{}".format(token), org=self.factory.org)
+        response = self.get_request(f"/invite/{token}", org=self.factory.org)
         self.assertEqual(response.status_code, 400)
 
     def test_invalid_invite_token(self):
@@ -33,17 +33,15 @@ class TestInvite(BaseTestCase):
     def test_valid_token(self):
         user = self.factory.create_user(is_invitation_pending=True)
         token = invite_token(user)
-        response = self.get_request("/invite/{}".format(token), org=self.factory.org)
+        response = self.get_request(f"/invite/{token}", org=self.factory.org)
         self.assertEqual(response.status_code, 200)
 
     def test_already_active_user(self):
         token = invite_token(self.factory.user)
         self.post_request(
-            "/invite/{}".format(token),
-            data={"password": "test1234"},
-            org=self.factory.org,
+            f"/invite/{token}", data={"password": "test1234"}, org=self.factory.org
         )
-        response = self.get_request("/invite/{}".format(token), org=self.factory.org)
+        response = self.get_request(f"/invite/{token}", org=self.factory.org)
         self.assertEqual(response.status_code, 400)
 
 
@@ -51,20 +49,20 @@ class TestInvitePost(BaseTestCase):
     def test_empty_password(self):
         token = invite_token(self.factory.user)
         response = self.post_request(
-            "/invite/{}".format(token), data={"password": ""}, org=self.factory.org
+            f"/invite/{token}", data={"password": ""}, org=self.factory.org
         )
         self.assertEqual(response.status_code, 400)
 
     def test_invalid_password(self):
         token = invite_token(self.factory.user)
         response = self.post_request(
-            "/invite/{}".format(token), data={"password": "1234"}, org=self.factory.org
+            f"/invite/{token}", data={"password": "1234"}, org=self.factory.org
         )
         self.assertEqual(response.status_code, 400)
 
     def test_bad_token(self):
         response = self.post_request(
-            "/invite/{}".format("jdsnfkjdsnfkj"),
+            '/invite/jdsnfkjdsnfkj',
             data={"password": "1234"},
             org=self.factory.org,
         )
@@ -74,23 +72,17 @@ class TestInvitePost(BaseTestCase):
         user = self.factory.create_user(details={})
         token = invite_token(user)
         response = self.post_request(
-            "/invite/{}".format(token),
-            data={"password": "test1234"},
-            org=self.factory.org,
+            f"/invite/{token}", data={"password": "test1234"}, org=self.factory.org
         )
         self.assertEqual(response.status_code, 302)
 
     def test_already_active_user(self):
         token = invite_token(self.factory.user)
         self.post_request(
-            "/invite/{}".format(token),
-            data={"password": "test1234"},
-            org=self.factory.org,
+            f"/invite/{token}", data={"password": "test1234"}, org=self.factory.org
         )
         response = self.post_request(
-            "/invite/{}".format(token),
-            data={"password": "test1234"},
-            org=self.factory.org,
+            f"/invite/{token}", data={"password": "test1234"}, org=self.factory.org
         )
         self.assertEqual(response.status_code, 400)
 
@@ -99,9 +91,7 @@ class TestInvitePost(BaseTestCase):
         token = invite_token(user)
         password = "test1234"
         response = self.post_request(
-            "/invite/{}".format(token),
-            data={"password": password},
-            org=self.factory.org,
+            f"/invite/{token}", data={"password": password}, org=self.factory.org
         )
         self.assertEqual(response.status_code, 302)
         user = User.query.get(user.id)
